@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gerenciar EPIs</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f9;
+    }
+
+    .header {
+      background-color: #007bff;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between; /* 🔹 garante alinhamento logo/texto à esquerda e usuário à direita */
+      align-items: center;
+    }
+
+    .logo-container {
+      width: 70px;
+      height: 70px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #f8f9fa;
+      border-radius: 10%;
+      margin-right: 10px;
+      overflow: hidden;
+    }
+    .logo-container img {
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+    }
+
+    .header-text { line-height: 1.2; }
+
+    .system-title {
+      background-color: #007bff;
+      color: white;
+      text-align: center;
+      padding: 10px 0;
+      font-size: 26px;
+      font-weight: bold;
+    }
+
+    #usuarioTopo {
+      color: white;
+    }
+    #usuarioTopo i {
+      color: white;
+    }
+
+    /* aspecto quando estoque = 0: escurece conteúdo (exclui ações) */
+    .muted-cell {
+      color: #6c757d;
+      opacity: 0.65;
+    }
+
+    /* pequenas melhorias */
+    .small-input { max-width: 120px; }
+  </style>
+</head>
+<body>
+
+ 
+  <!-- Cabeçalho -->
+  <div class="header">
+    <div class="d-flex align-items-center">
+      <div class="logo-container">
+        <img src="logo-cbtu.png" alt="Logo CBTU">
+      </div>
+      <div class="header-text">
+        <strong>COMPANHIA BRASILEIRA DE TRENS URBANOS DE MACEIÓ</strong><br>
+        Superintendência de Trens Urbanos de Maceió
+      </div>
+    </div>
+
+    <!-- 🔹 Usuário alinhado à direita -->
+    <div id="usuarioTopo" class="d-flex align-items-center">
+      <i class="bi bi-person-circle fs-4 me-2"></i>
+      <span id="nomeUsuario"></span>
+    </div>
+  </div>
+
+  <!-- Título do sistema -->
+  <div class="system-title">
+    Sistema de Controle SESMT
+  </div>
+
+  <!-- Conteúdo da página -->
+  <div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h4 class="mb-0">Gerenciar EPIs</h4>
+      <button class="btn btn-secondary" onclick="window.location.href='principal.html'">⬅ Voltar</button>
+    </div>
+
+  <!-- Formulário de cadastro -->
+  <form id="formEpi" class="card p-3 mb-4">
+    <div class="row g-3">
+      <div class="col-md-4">
+<label for="epi" class="form-label">EPI</label>
+<input 
+  type="text" 
+  id="epi" 
+  name="epi" 
+  class="form-control" 
+  maxlength="70">
+<small id="epi_count" class="form-text text-muted">0 / 70 caracteres</small>
+      </div>
+      <div class="col-md-2">
+        <label for="ca" class="form-label">CA</label>
+        <input type="text" class="form-control" id="ca" name="ca" required>
+      </div>
+      <div class="col-md-2">
+        <label for="estoque" class="form-label">Estoque</label>
+        <input type="number" min="0" value="0" class="form-control small-input" id="estoque" name="estoque" required>
+      </div>
+      <div class="col-md-2">
+        <label for="compra" class="form-label">Data da Compra</label>
+        <input type="date" class="form-control" id="compra" name="compra">
+      </div>
+      <div class="col-md-2">
+        <label for="validade" class="form-label">Validade</label>
+        <input type="date" class="form-control" id="validade" name="validade">
+      </div>
+    </div>
+    <div class="mt-3">
+      <button type="submit" class="btn btn-success">Salvar</button>
+    </div>
+  </form>
+
+  <!-- Tabela de listagem -->
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped mb-0">
+      <thead class="table-dark">
+        <tr>
+          <th class="text-center" style="width: 28%;">EPI</th>
+          <th class="text-center" style="width: 10%;">CA</th>
+          <th class="text-center" style="width: 8%;">Estoque</th>
+          <th class="text-center" style="width: 14%;">Data da Compra</th>
+          <th class="text-center" style="width: 14%;">Validade</th>
+          <th class="text-center" style="width: 8%;">Vencido</th>
+          <th class="text-center" style="width: 18%;">Ações</th>
+        </tr>
+      </thead>
+      <tbody id="tabelaEpi"></tbody>
+    </table>
+  </div>
+
+  <!-- Modal Editar EPI (agora com estoque atual + adicionar quantidade) -->
+  <div class="modal fade" id="modalEditarEpi" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-warning">
+          <h5 class="modal-title">Editar EPI</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formEditarEpi" onsubmit="event.preventDefault(); salvarEdicao();">
+            <div class="mb-3">
+              <label for="editEpi" class="form-label">EPI</label>
+              <input type="text" id="editEpi" class="form-control" readonly>
+            </div>
+            <div class="mb-3">
+              <label for="editCa" class="form-label">CA</label>
+              <input type="text" id="editCa" class="form-control" required>
+            </div>
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="editCompra" class="form-label">Data da Compra</label>
+                <input type="date" id="editCompra" class="form-control">
+              </div>
+              <div class="col-md-6">
+                <label for="editValidade" class="form-label">Validade</label>
+                <input type="date" id="editValidade" class="form-control">
+              </div>
+            </div>
+
+            <hr>
+
+            <div class="mb-3">
+              <label class="form-label">Estoque atual</label>
+              <input type="number" id="editEstoqueCurrent" class="form-control small-input" readonly>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Adicionar quantidade</label>
+              <input type="number" id="editAddEstoque" class="form-control small-input" min="0" value="0">
+              <div class="form-text">Coloque uma quantidade para somar ao estoque atual.</div>
+            </div>
+
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-success" onclick="salvarEdicao()">Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div> <!-- container -->
+
+<script>
+// Aplicar nos campos
+atualizarContador("epi", "epi_count", 70);
+</script>
+  
+<!-- Config e scripts -->
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+/* Helpers persistidos do seu código anterior */
+function parseDateLocal(dateStr) {
+  if (!dateStr) return null;
+  const parts = String(dateStr).split("-");
+  if (parts.length !== 3) return null;
+  return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+}
+function dateOnly(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+
+/* lógica principal */
+let editandoId = null;
+
+document.getElementById("formEpi").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const epi = document.getElementById("epi").value.trim();
+  const ca = document.getElementById("ca").value.trim();
+  const estoqueRaw = document.getElementById("estoque").value;
+  const compra = document.getElementById("compra").value || null;
+  const validade = document.getElementById("validade").value || null;
+
+  const estoque = Number(estoqueRaw) || 0;
+  if (estoque < 0) { alert("Estoque deve ser >= 0"); return; }
+
+  if (!epi || !ca) {
+    alert("Preencha ao menos EPI e CA!");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/epi`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ epi, ca, compra, validade, estoque })
+    });
+
+    if (!res.ok) {
+      const txt = await res.text().catch(()=>null);
+      throw new Error(txt || "Erro ao salvar");
+    }
+
+    alert("✅ EPI cadastrado com sucesso!");
+    document.getElementById("formEpi").reset();
+    carregarEpis();
+  } catch (err) {
+    console.error(err);
+    alert("❌ Erro ao salvar EPI");
+  }
+});
+
+/* Carregar EPIs e montar tabela */
+async function carregarEpis() {
+  try {
+    const res = await fetch(`${API_BASE}/epi`);
+    if (!res.ok) throw new Error("Erro ao buscar EPIs");
+    const data = await res.json();
+    const tbody = document.getElementById("tabelaEpi");
+    tbody.innerHTML = "";
+
+    if (!Array.isArray(data) || data.length === 0) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td colspan="7" class="text-center text-muted">Nenhum EPI cadastrado</td>`;
+      tbody.appendChild(tr);
+      return;
+    }
+
+    const hoje = dateOnly(new Date());
+
+    data.forEach(item => {
+      const validadeStr = item.validade ? String(item.validade).split("T")[0] : "";
+      const compraStr = item.compra ? String(item.compra).split("T")[0] : "";
+
+      const validadeDate = validadeStr ? parseDateLocal(validadeStr) : null;
+      const compraDate = compraStr ? parseDateLocal(compraStr) : null;
+      const vencido = validadeDate ? dateOnly(validadeDate) < hoje : false;
+
+      const estoqueVal = Number(item.estoque) || 0;
+      const isEsgotado = estoqueVal <= 0;
+
+      const tr = document.createElement("tr");
+
+      const tdEpi = document.createElement("td");
+      tdEpi.textContent = item.epi || "";
+      if (isEsgotado) tdEpi.classList.add("muted-cell");
+
+      const tdCa = document.createElement("td");
+      tdCa.textContent = item.ca || "";
+      if (isEsgotado) tdCa.classList.add("muted-cell");
+
+      const tdEstoque = document.createElement("td");
+      tdEstoque.textContent = estoqueVal;
+      tdEstoque.className = "text-center";
+
+      const tdCompra = document.createElement("td");
+      tdCompra.textContent = compraDate ? compraDate.toLocaleDateString("pt-BR") : "";
+      if (isEsgotado) tdCompra.classList.add("muted-cell");
+
+      const tdValidade = document.createElement("td");
+      tdValidade.textContent = validadeDate ? validadeDate.toLocaleDateString("pt-BR") : "";
+      if (isEsgotado) tdValidade.classList.add("muted-cell");
+
+      const tdVencido = document.createElement("td");
+      tdVencido.className = "text-center";
+      const spanBadge = document.createElement("span");
+      spanBadge.className = vencido ? "badge bg-danger" : "badge bg-success";
+      spanBadge.textContent = vencido ? "SIM" : "NÃO";
+      tdVencido.appendChild(spanBadge);
+      if (isEsgotado) tdVencido.classList.add("muted-cell");
+
+      const tdAcoes = document.createElement("td");
+      tdAcoes.className = "text-center";
+
+      const btnEdit = document.createElement("button");
+      btnEdit.type = "button";
+      btnEdit.className = "btn btn-warning btn-sm me-2";
+      btnEdit.textContent = "Editar";
+      btnEdit.addEventListener("click", () => abrirModalEditar(
+        item.idepi,
+        item.epi,
+        item.ca,
+        compraStr,
+        validadeStr,
+        estoqueVal
+      ));
+
+      const btnDel = document.createElement("button");
+      btnDel.type = "button";
+      btnDel.className = "btn btn-danger btn-sm";
+      btnDel.textContent = "Excluir";
+      btnDel.addEventListener("click", () => excluirEpi(item.idepi, item.epi));
+
+      tdAcoes.appendChild(btnEdit);
+      tdAcoes.appendChild(btnDel);
+
+      tr.appendChild(tdEpi);
+      tr.appendChild(tdCa);
+      tr.appendChild(tdEstoque);
+      tr.appendChild(tdCompra);
+      tr.appendChild(tdValidade);
+      tr.appendChild(tdVencido);
+      tr.appendChild(tdAcoes);
+
+      tbody.appendChild(tr);
+    });
+
+  } catch (err) {
+    console.error("Erro ao carregar EPIs:", err);
+  }
+}
+
+/* Excluir (usa idepi) */
+async function excluirEpi(idepi, nomeEpi) {
+  if (!confirm(`Tem certeza que deseja excluir o EPI: ${nomeEpi}?`)) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/epi/${idepi}`, { method: "DELETE" });
+    if (!res.ok) {
+      const txt = await res.text().catch(()=>null);
+      throw new Error(txt || "Erro ao excluir");
+    }
+    alert("✅ EPI excluído com sucesso!");
+    carregarEpis();
+  } catch (err) {
+    console.error(err);
+    alert("❌ Erro ao excluir EPI");
+  }
+}
+
+/* Abrir modal de edição (popula campos com strings YYYY-MM-DD) */
+function abrirModalEditar(idepi, epi, ca, compraStr, validadeStr, estoqueVal) {
+  editandoId = idepi;
+  document.getElementById("editEpi").value = epi || "";
+  document.getElementById("editCa").value = ca || "";
+  document.getElementById("editCompra").value = compraStr || "";
+  document.getElementById("editValidade").value = validadeStr || "";
+  document.getElementById("editEstoqueCurrent").value = String(Number(estoqueVal) || 0);
+  document.getElementById("editAddEstoque").value = "0";
+  const modal = new bootstrap.Modal(document.getElementById("modalEditarEpi"));
+  modal.show();
+}
+
+/* Salvar edição (envia strings YYYY-MM-DD direto e novo estoque somado) */
+async function salvarEdicao() {
+  const epi = document.getElementById("editEpi").value.trim();
+  const ca = document.getElementById("editCa").value.trim();
+  const compra = document.getElementById("editCompra").value || null;
+  const validade = document.getElementById("editValidade").value || null;
+
+  const estoqueCurrent = Number(document.getElementById("editEstoqueCurrent").value) || 0;
+  const addQty = Number(document.getElementById("editAddEstoque").value) || 0;
+  if (addQty < 0) { alert("Quantidade a adicionar deve ser >= 0"); return; }
+  const estoqueFinal = estoqueCurrent + addQty;
+
+  if (!epi || !ca) {
+    alert("Preencha ao menos EPI e CA!");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/epi/${editandoId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ epi, ca, compra, validade, estoque: estoqueFinal })
+    });
+
+    if (!res.ok) {
+      const txt = await res.text().catch(()=>null);
+      throw new Error(txt || "Erro ao editar");
+    }
+
+    alert("✅ EPI atualizado com sucesso!");
+    bootstrap.Modal.getInstance(document.getElementById("modalEditarEpi")).hide();
+    carregarEpis();
+  } catch (err) {
+    console.error(err);
+    alert("❌ Erro ao editar EPI");
+  }
+}
+
+/* inicia */
+window.addEventListener("DOMContentLoaded", carregarEpis);
+    // Recupera nome do localStorage
+const nomeLogado = localStorage.getItem("nomeLogado");
+
+if (nomeLogado) {
+  document.getElementById("nomeUsuario").textContent = nomeLogado;
+} else {
+  document.getElementById("nomeUsuario").textContent = "Nenhum usuário";
+}
+
+</script>
+
+</body>
+</html>

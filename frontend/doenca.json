@@ -1,0 +1,12 @@
+[
+  { "codigo": "D001", "descricao": "Lombalgia ocupacional" },
+  { "codigo": "D002", "descricao": "Lesão por esforço repetitivo (LER/DORT)" },
+  { "codigo": "D003", "descricao": "Doença auditiva induzida por ruído (PAIR)" },
+  { "codigo": "D004", "descricao": "Pneumoconiose causada por poeira mineral" },
+  { "codigo": "D005", "descricao": "Dermatite de contato ocupacional" },
+  { "codigo": "D006", "descricao": "Transtorno de estresse pós-traumático relacionado ao trabalho" },
+  { "codigo": "D007", "descricao": "Asma ocupacional" },
+  { "codigo": "D008", "descricao": "Tendinite ocupacional" },
+  { "codigo": "D009", "descricao": "Síndrome do túnel do carpo" },
+  { "codigo": "D010", "descricao": "Câncer ocupacional (exposição a agentes químicos/físicos)" }
+]

@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Entrega de EPIs</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body { background-color: #f4f6f9; }
+
+    .header {
+      background-color: #007bff; /* 🔹 força azul igual em todos */
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .logo-container {
+      background-color: #f8f9fa;
+      padding: 6px;
+      border-radius: 10%;
+      margin-right: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 60px;
+    }
+    .logo-container img {
+      max-height: 100%;
+      max-width: 100%;
+      object-fit: contain;
+    }
+
+    .system-title {
+      flex: 1 0 100%; /* ocupa linha toda */
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: white;
+      margin-top: 10px;
+    }
+
+    #usuarioTopo {
+      color: white;
+    }
+    #usuarioTopo i {
+      color: white;
+    }
+
+    .full-width-table { margin: 0; width: 100%; }
+
+    .muted-row {
+      background-color: #e9ecef !important;
+      color: #6c757d !important;
+    }
+    .muted-row td { color: #6c757d !important; }
+    .muted-row .badge { opacity: 0.9; }
+
+    @media (max-width: 576px) {
+      .system-title { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+
+ <script src="/js/auth.js"></script>
+
+  <!-- Cabeçalho -->
+  <div class="header">
+    <!-- 🔹 Logo + texto -->
+    <div class="d-flex align-items-center">
+      <div class="logo-container">
+        <img src="logo-cbtu.png" alt="Logo CBTU">
+      </div>
+      <div>
+        <strong>COMPANHIA BRASILEIRA DE TRENS URBANOS DE MACEIÓ</strong><br>
+        Superintendência de Trens Urbanos de MaceiÓ
+      </div>
+    </div>
+
+    <!-- 🔹 Usuário alinhado à direita -->
+    <div id="usuarioTopo" class="d-flex align-items-center">
+      <i class="bi bi-person-circle fs-4 me-2"></i>
+      <span id="nomeUsuario"></span>
+    </div>
+
+    <!-- 🔹 Título central na mesma faixa -->
+    <div class="system-title">Entrega de EPIs</div>
+  </div>
+
+  <!-- Campos do funcionário -->
+  <div class="container mb-3">
+    <div class="row g-3 align-items-end">
+      <div class="col-12 col-md-3">
+        <label for="matricula" class="form-label">Matrícula</label>
+        <select id="matricula" class="form-select" required>
+          <option value="">Carregando...</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-3">
+        <label for="nome" class="form-label">Nome</label>
+        <input type="text" id="nome" class="form-control" readonly>
+      </div>
+      <div class="col-12 col-md-3">
+        <label for="setor" class="form-label">Setor</label>
+        <input type="text" id="setor" class="form-control" readonly>
+      </div>
+      <div class="col-12 col-md-3">
+        <label for="cargo" class="form-label">Função</label>
+        <input type="text" id="cargo" class="form-control" readonly>
+      </div>
+    </div>
+
+    <!-- Botões: Nova Entrega à esquerda, Voltar à direita -->
+    <div class="row mt-3">
+      <div class="col-6 text-start">
+        <button id="btnNovaEntrega" class="btn btn-success">➕ Nova Entrega</button>
+      </div>
+      <div class="col-6 text-end">
+        <button class="btn btn-secondary" onclick="window.location.href='principal.html'">⬅ Voltar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabela (só EPIs do funcionário selecionado) -->
+  <div class="container-fluid px-0">
+    <table class="table table-bordered table-striped full-width-table">
+      <thead class="table-dark text-center">
+        <tr>
+          <th>EPI</th>
+          <th>CA</th>
+          <th>Validade</th>
+          <th>Vencido</th>
+          <th>Entrega</th>
+          <th>Quantidade</th>
+          <th>Substituído</th>
+          <th class="text-center">Ações</th>
+        </tr>
+      </thead>
+      <tbody id="tabelaEpiFuncionario">
+        <tr><td colspan="8" class="text-center text-muted">Selecione uma matrícula para ver os EPIs</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Modal Cadastrar/Editar Entrega -->
+  <div class="modal fade" id="modalEntregaEpi" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="modalTitle">Cadastrar Entrega de EPI</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formEntregaEpi" onsubmit="event.preventDefault(); salvarEntrega();">
+            <div class="row g-3">
+              <div class="col-md-5">
+                <label for="epi" class="form-label">EPI</label>
+                <select id="epi" class="form-select" required></select>
+              </div>
+              <div class="col-md-2">
+                <label for="ca" class="form-label">CA</label>
+                <input type="text" id="ca" class="form-control" readonly>
+              </div>
+              <div class="col-md-3">
+                <label for="validade" class="form-label">Validade</label>
+                <input type="text" id="validade" class="form-control" readonly>
+              </div>
+              <div class="col-md-2">
+                <label for="quantidade" class="form-label">Quantidade</label>
+                <input type="number" id="quantidade" class="form-control" min="1" value="1" required>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-2">
+              <div class="col-md-4">
+                <label for="entrega" class="form-label">Data da Entrega</label>
+                <input type="date" id="entrega" class="form-control" required>
+              </div>
+              <div class="col-md-8">
+                <small class="text-muted">A entrega será atribuída à matrícula selecionada acima.</small>
+              </div>
+            </div>
+            <!-- não colocamos matrícula no modal - usamos a que está selecionada no topo -->
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-success" onclick="salvarEntrega()">Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- config.js define API_BASE -->
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    let editandoEntregaId = null; // id da entrega que está sendo editada (se houver)
+
+    // formatação robusta de datas (aceita 'YYYY-MM-DD', 'YYYY-MM-DDTHH:MM:SS', ou 'DD/MM/YYYY')
+    function formatDateDisplayFromAny(value) {
+      if (!value) return "";
+      const s = String(value).split("T")[0].trim();
+      if (s.includes("-")) {
+        const [y, m, d] = s.split("-");
+        if (y && m && d) return `${String(d).padStart(2,"0")}/${String(m).padStart(2,"0")}/${y}`;
+      }
+      if (s.includes("/")) {
+        const parts = s.split("/");
+        if (parts.length === 3) return `${String(parts[0]).padStart(2,"0")}/${String(parts[1]).padStart(2,"0")}/${parts[2]}`;
+      }
+      return s;
+    }
+
+    // checa se validade (qualquer formato acima) já passou
+    function isVencido(validadeStr) {
+      if (!validadeStr) return false;
+      const s = String(validadeStr).split("T")[0].trim();
+      let y,m,d;
+      if (s.includes("-")) {
+        [y,m,d] = s.split("-").map(Number);
+      } else if (s.includes("/")) {
+        // dd/mm/yyyy
+        const parts = s.split("/");
+        d = Number(parts[0]); m = Number(parts[1]); y = Number(parts[2]);
+      } else return false;
+      if (!y || !m || !d) return false;
+      const validadeDate = new Date(y, m-1, d);
+      const hoje = new Date(); hoje.setHours(0,0,0,0);
+      return validadeDate < hoje;
+    }
+
+    // carregar funcionários para select
+    async function carregarFuncionarios() {
+      try {
+        const res = await fetch(`${API_BASE}/funcionarios`);
+        if (!res.ok) throw new Error("Erro ao carregar funcionários");
+        const funcionarios = await res.json();
+        const select = document.getElementById("matricula");
+        select.innerHTML = "<option value=''>Selecione</option>";
+        funcionarios.forEach(f => {
+          const opt = document.createElement("option");
+          opt.value = f.matricula;
+          opt.textContent = `${f.matricula} — ${f.nome}`;
+          opt.dataset.nome = f.nome || "";
+          opt.dataset.setor = f.setor || "";
+          // tabela funcionarios tem 'cargo' (você mencionou). se não existir, tenta 'funcao'
+          opt.dataset.cargo = f.cargo || f.funcao || "";
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        console.error(err);
+        document.getElementById("matricula").innerHTML = "<option value=''>Erro ao carregar</option>";
+      }
+    }
+
+    // carregar EPIs para o modal (usa idepi como value para manipular estoque)
+    async function carregarEpisSelect() {
+      try {
+        const res = await fetch(`${API_BASE}/epi`);
+        if (!res.ok) throw new Error("Erro ao carregar EPIs");
+        const epis = await res.json();
+        const select = document.getElementById("epi");
+        select.innerHTML = "<option value=''>Selecione</option>";
+        epis.forEach(e => {
+          const opt = document.createElement("option");
+          opt.value = e.idepi; // usa idepi como id
+          opt.textContent = e.epi;
+          opt.dataset.epiName = e.epi || "";
+          opt.dataset.ca = e.ca || "";
+          opt.dataset.validade = e.validade || "";
+          opt.dataset.estoque = (typeof e.estoque !== "undefined" && e.estoque !== null) ? String(e.estoque) : "";
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        console.error(err);
+        document.getElementById("epi").innerHTML = "<option value=''>Erro</option>";
+      }
+    }
+
+    // ao trocar epi no modal, preenche CA, validade e verifica estoque
+    document.getElementById("epi").addEventListener("change", (e) => {
+      const opt = e.target.selectedOptions[0];
+      document.getElementById("ca").value = opt?.dataset.ca || "";
+      document.getElementById("validade").value = formatDateDisplayFromAny(opt?.dataset.validade);
+      // se quiser mostrar estoque em algum lugar, poderia colocar aqui
+    });
+
+    // ao trocar matrícula: preenche campos e carrega só EPIs desse funcionário
+    document.getElementById("matricula").addEventListener("change", (e) => {
+      const opt = e.target.selectedOptions[0];
+      document.getElementById("nome").value = opt?.dataset.nome || "";
+      document.getElementById("setor").value = opt?.dataset.setor || "";
+      document.getElementById("cargo").value = opt?.dataset.cargo || "";
+      const matricula = e.target.value;
+      if (matricula) carregarEntregasFuncionario(matricula);
+      else {
+        document.getElementById("tabelaEpiFuncionario").innerHTML = `<tr><td colspan="8" class="text-center text-muted">Selecione uma matrícula para ver os EPIs</td></tr>`;
+      }
+    });
+
+    // botão Nova Entrega (abre modal, exige matrícula selecionada)
+    document.getElementById("btnNovaEntrega").addEventListener("click", (ev) => {
+      const matricula = document.getElementById("matricula").value;
+      if (!matricula) { alert("Selecione uma matrícula antes de cadastrar uma entrega."); return; }
+      // reset modal para novo cadastro
+      editandoEntregaId = null;
+      document.getElementById("modalTitle").textContent = "Cadastrar Entrega de EPI";
+      document.getElementById("formEntregaEpi").reset();
+      document.getElementById("quantidade").value = 1;
+      document.getElementById("ca").value = "";
+      document.getElementById("validade").value = "";
+      const modal = new bootstrap.Modal(document.getElementById("modalEntregaEpi"));
+      modal.show();
+    });
+
+    // carregar entregas do funcionário (usa query param matricula quando possível)
+    async function carregarEntregasFuncionario(matricula) {
+      try {
+        const url = `${API_BASE}/epi_funcionario?matricula=${encodeURIComponent(matricula)}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Erro ao buscar entregas");
+        const data = await res.json();
+
+        
+    const tbody = document.getElementById("tabelaEpiFuncionario");
+        tbody.innerHTML = "";
+        if (!Array.isArray(data) || data.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">Nenhum EPI entregue para este funcionário</td></tr>`;
+          return;
+        }
+
+        data.forEach(item => {
+          const vencidoBool = isVencido(item.validade);
+          const validadeDisplay = item.validade ? formatDateDisplayFromAny(item.validade) : "";
+          const entregaDisplay = item.entrega ? formatDateDisplayFromAny(item.entrega) : "";
+          const qtd = (typeof item.quantidade !== "undefined" && item.quantidade !== null) ? item.quantidade : 1;
+
+          const tr = document.createElement("tr");
+          // se já marcado como devolução/substituição (valor 1), aplica classe
+          const devolvido = Number(item.devolucao || item.substituido || 0) === 1;
+
+          if (devolvido) tr.classList.add("muted-row");
+          
+
+          // montar a linha (usamos innerHTML para simplicidade)
+          tr.innerHTML = `
+            <td>${escapeHtml(item.epi || "")}</td>
+            <td>${escapeHtml(item.ca || "")}</td>
+            <td>${escapeHtml(validadeDisplay)}</td>
+            <td class="text-center">
+              <span class="badge ${vencidoBool ? "bg-danger text-white" : "bg-success text-white"}">${vencidoBool ? "SIM" : "NÃO"}</span>
+            </td>
+            <td>${escapeHtml(entregaDisplay)}</td>
+            <td class="text-center">${escapeHtml(String(qtd))}</td>
+            <td class="text-center">
+              <input class="sub-checkbox" type="checkbox" data-id="${item.idepi_funcionario}" ${devolvido ? "checked" : ""} ${devolvido ? "disabled" : ""}>
+            </td>
+            <td class="text-center">
+              <div class="btn-group gap-2" role="group">
+                <button class="btn btn-warning btn-sm btn-edit" data-id="${item.idepi_funcionario}" ${devolvido ? "disabled" : ""}>Editar</button>
+               <button class="btn btn-danger btn-sm btn-del" data-id="${item.idepi_funcionario}">Excluir</button>
+              </div>
+            </td>
+          `;
+
+          tbody.appendChild(tr);
+        });
+
+        // delegação de eventos - editar / excluir / checkbox substituição
+tbody.querySelectorAll(".btn-edit").forEach(b => {
+  b.addEventListener("click", (ev) => abrirEditar(ev.currentTarget.dataset.id));
+});
+tbody.querySelectorAll(".btn-del").forEach(b => {
+  b.addEventListener("click", (ev) => excluirEntrega(ev.currentTarget.dataset.id));
+});
+
+// melhor: usar o próprio tbody para escutar mudanças de checkbox (delegação)
+tbody.addEventListener("change", async (ev) => {
+  const target = ev.target;
+  if (!target.matches(".sub-checkbox")) return;
+
+  const chk = target;
+  const id = chk.dataset.id;
+
+ if (chk.checked) {
+  // monta modal dinâmico
+  const modalHtml = `
+    <div class="modal fade" id="modalConfirmSub" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header bg-warning">
+            <h5 class="modal-title">Confirmar Substituição</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            Tem certeza que deseja marcar este EPI como <strong>SUBSTITUÍDO</strong> (não volta ao estoque)?
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button class="btn btn-danger" id="btnConfirmaSub">Confirmar</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML("beforeend", modalHtml);
+
+  const modalEl = document.getElementById("modalConfirmSub");
+ const bsModal = new bootstrap.Modal(modalEl, { backdrop: false });
+  bsModal.show();
+
+  // se fechar sem confirmar → desmarca
+  modalEl.addEventListener("hidden.bs.modal", () => {
+    if (!chk.disabled) chk.checked = false;
+    modalEl.remove();
+  });
+
+  // confirmar → chama API
+  modalEl.querySelector("#btnConfirmaSub").addEventListener("click", async () => {
+    try {
+      const res = await fetch(`${API_BASE}/epi_funcionario/${encodeURIComponent(id)}/devolucao`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ devolucao: 1 })
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(()=>null);
+        throw new Error(txt || "Erro ao marcar substituição");
+      }
+
+      // sucesso: travar a linha
+      const row = chk.closest("tr");
+      row.classList.add("muted-row");
+
+      row.querySelectorAll("input, select, button").forEach(el => {
+        if (el.classList.contains("btn-del")) {
+          el.disabled = false; // mantém excluir
+        } else {
+          el.disabled = true;
+        }
+      });
+
+      chk.checked = true;
+      chk.disabled = true;
+      bsModal.hide();
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao marcar substituição: " + (err.message || ""));
+      chk.checked = false;
+    }
+  });
+} else {
+  chk.checked = true; // impede desmarcar
+}
+
+});
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById("tabelaEpiFuncionario").innerHTML = `<tr><td colspan="8" class="text-center text-danger">Erro ao carregar entregas</td></tr>`;
+      }
+    }
+
+    // salvar nova entrega (POST) ou editar (PUT). Cliente checa estoque antes de enviar.
+    async function salvarEntrega() {
+      try {
+        const matricula = document.getElementById("matricula").value;
+        if (!matricula) { alert("Selecione uma matrícula."); return; }
+
+        const nome = document.getElementById("nome").value;
+        const setor = document.getElementById("setor").value;
+        const funcao = document.getElementById("cargo").value;
+        const idepi = document.getElementById("epi").value; // idepi
+        const epiName = document.getElementById("epi").selectedOptions[0]?.dataset.epiName || "";
+        const ca = document.getElementById("ca").value;
+        const entrega = document.getElementById("entrega").value;
+        const validade = (document.getElementById("validade").value ? toIsoDateFromDisplay(document.getElementById("validade").value) : null);
+        const quantidade = parseInt(document.getElementById("quantidade").value || "1", 10);
+
+        if (!idepi || !entrega || !quantidade || quantidade < 1) {
+          alert("Preencha EPI, data de entrega e quantidade (>=1).");
+          return;
+        }
+
+        // checa estoque localmente (opcional — backend re-verifica em transação)
+        const opt = document.getElementById("epi").selectedOptions[0];
+        const estoqueDisponivel = opt?.dataset.estoque ? parseInt(opt.dataset.estoque,10) : null;
+        if (estoqueDisponivel !== null && !isNaN(estoqueDisponivel)) {
+          // se estiver editando, o backend deve considerar diferença; aqui apenas pré-checagem para novas entregas
+          if (!editandoEntregaId && estoqueDisponivel < quantidade) {
+            alert(`Estoque insuficiente (disponível: ${estoqueDisponivel}). ajuste a quantidade ou reponha estoque.`);
+            return;
+          }
+        }
+
+        const payload = {
+          matricula, nome, setor, funcao,
+          idepi, epi: epiName, ca,
+          entrega, validade, quantidade
+        };
+
+        let url = `${API_BASE}/epi_funcionario`;
+        let method = "POST";
+        if (editandoEntregaId) {
+          url += `/${encodeURIComponent(editandoEntregaId)}`;
+          method = "PUT";
+        }
+
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const txt = await res.text().catch(()=>null);
+          throw new Error(txt || "Erro ao salvar entrega");
+        }
+
+        alert("Entrega salva com sucesso!");
+        bootstrap.Modal.getInstance(document.getElementById("modalEntregaEpi")).hide();
+        document.getElementById("formEntregaEpi").reset();
+        editandoEntregaId = null;
+        // recarrega entregas e o select de EPIs (estoque atualizado)
+        carregarEpisSelect();
+        carregarEntregasFuncionario(matricula);
+      } catch (err) {
+        console.error(err);
+        alert(err.message || "Erro ao salvar entrega");
+      }
+    }
+
+    // abre modal para editar: preenche com dados da entrega
+    async function abrirEditar(id) {
+      try {
+        const res = await fetch(`${API_BASE}/epi_funcionario/${encodeURIComponent(id)}`);
+        if (!res.ok) throw new Error("Erro ao buscar entrega");
+        const item = await res.json();
+        editandoEntregaId = id;
+        document.getElementById("modalTitle").textContent = "Editar Entrega de EPI";
+
+        // seleciona idepi no select (valor = idepi)
+        const epiSelect = document.getElementById("epi");
+        epiSelect.value = item.idepi || "";
+        // forçar disparo change para preencher ca/validade (se opção existir)
+        epiSelect.dispatchEvent(new Event('change'));
+
+        document.getElementById("ca").value = item.ca || "";
+        document.getElementById("validade").value = item.validade ? formatDateDisplayFromAny(item.validade) : "";
+        document.getElementById("entrega").value = item.entrega ? String(item.entrega).split("T")[0] : "";
+        document.getElementById("quantidade").value = item.quantidade || 1;
+
+        // se já foi marcada substituição, não permitir editar
+        if (Number(item.devolucao || item.substituido || 0) === 1) {
+          alert("Esta entrega foi marcada como substituída e não pode ser editada.");
+          return;
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById("modalEntregaEpi"));
+        modal.show();
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao abrir edição");
+      }
+    }
+
+    // excluir e devolver quantidade ao estoque (backend faz a restauração condicional)
+    async function excluirEntrega(id) {
+      if (!confirm("Tem certeza que deseja excluir esta entrega?")) return;
+      try {
+        const res = await fetch(`${API_BASE}/epi_funcionario/${encodeURIComponent(id)}`, { method: "DELETE" });
+        if (!res.ok) {
+          const txt = await res.text().catch(()=>null);
+          throw new Error(txt || "Erro ao excluir");
+        }
+        alert("Entrega excluída com sucesso!");
+        const matricula = document.getElementById("matricula").value;
+        if (matricula) carregarEntregasFuncionario(matricula);
+        carregarEpisSelect();
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao excluir entrega");
+      }
+    }
+
+    // util: converte dd/mm/yyyy (display) para YYYY-MM-DD (iso)
+    function toIsoDateFromDisplay(display) {
+      if (!display) return null;
+      if (display.includes("/")) {
+        const [d,m,y] = display.split("/");
+        return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+      }
+      // assume já YYYY-MM-DD
+      return display;
+    }
+
+    // simples escape para inserir em innerHTML (para evitar quebra)
+    function escapeHtml(s) {
+      return String(s || "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+    }
+
+    // init
+    window.addEventListener("DOMContentLoaded", () => {
+      carregarFuncionarios();
+      carregarEpisSelect();
+      document.getElementById("tabelaEpiFuncionario").innerHTML = `<tr><td colspan="8" class="text-center text-muted">Selecione uma matrícula para ver os EPIs</td></tr>`;
+    });
+
+     // Recupera nome do localStorage
+const nomeLogado = localStorage.getItem("nomeLogado");
+
+if (nomeLogado) {
+  document.getElementById("nomeUsuario").textContent = nomeLogado;
+} else {
+  document.getElementById("nomeUsuario").textContent = "Nenhum usuário";
+}
+
+  </script>
+</body>
+</html>

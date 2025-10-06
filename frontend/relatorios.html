@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Relatórios - Sistema de Acidentes</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- jsPDF + autotable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    body {
+      background-color: #f4f6f9;
+      font-family: Arial, sans-serif;
+      margin: 0;
+    }
+
+    /* Cabeçalho */
+    .header {
+      background-color: #007bff;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between; /* 👈 adiciona espaço entre logo/texto e usuário */
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+    }
+
+    .logo-container {
+      width: 70px;
+      height: 70px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #f8f9fa;
+      border-radius: 10%;
+      margin-right: 10px;
+      overflow: hidden;
+    }
+
+    .logo-container img {
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+    }
+
+    .header-text { line-height: 1.2; }
+
+    /* Usuário no topo (direita) */
+    #usuarioTopo {
+      display: flex;
+      align-items: center;
+      font-size: 16px;
+      color: white;
+    }
+    #usuarioTopo i { color: white; margin-right: 6px; }
+
+    /* Título do sistema */
+    .system-title {
+      background-color: #007bff;
+      color: white;
+      text-align: center;
+      padding: 10px 0;
+      font-size: 26px;
+      font-weight: bold;
+    }
+
+    /* Área principal */
+    .container-main {
+      margin-top: 40px;
+      text-align: center;
+    }
+
+    /* Botões */
+    .btn-relatorio {
+      width: 300px;
+      margin: 10px auto;
+      font-size: 18px;
+      padding: 12px;
+      border-radius: 8px;
+      display: block;
+    }
+
+    /* Modal estatístico responsivo */
+    #modalEstatistico .modal-dialog {
+      max-width: 60% !important;
+    }
+
+    @media (max-width: 768px) {
+      #modalEstatistico .modal-dialog {
+        max-width: 95% !important;
+        margin: 10px auto;
+      }
+      .btn-relatorio {
+        width: 90%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <script src="/js/auth.js"></script>
+   
+  <!-- Cabeçalho -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-container">
+        <img src="logo-cbtu.png" alt="Logo CBTU">
+      </div>
+      <div class="header-text">
+        <strong>COMPANHIA BRASILEIRA DE TRENS URBANOS DE MACEIÓ</strong><br>
+        Superintendência de Trens Urbanos de Maceió
+      </div>
+    </div>
+
+    <!-- Usuário alinhado à direita -->
+    <div id="usuarioTopo">
+      <i class="bi bi-person-circle fs-5"></i>
+      <span id="nomeUsuario">Usuário Logado</span>
+    </div>
+  </div>
+
+  <!-- Título -->
+  <div class="system-title">Relatórios de Acidentes</div>
+
+  <!-- Conteúdo principal -->
+  <div class="container-main">
+    <button class="btn btn-primary btn-relatorio" id="btnAnaliseAcidente">Gerar Análise de Acidente</button>
+    <button class="btn btn-success btn-relatorio" id="btnRelatorioGeral">Relatório de Acidentes Geral</button>
+    <button class="btn btn-dark btn-relatorio" id="btnRelatorioPeriodo">Relatório por Período</button>
+    <button class="btn btn-relatorio text-white" id="btnEstatistico" style="background-color:#007bff;">
+  Relatório Estatístico de Acidentes
+</button>
+
+    <a href="principal.html" class="btn btn-secondary btn-relatorio" id="btnVoltar">Voltar ao Menu</a>
+  </div>
+
+  <!-- Modal: Análise por número (MM/AAAA) -->
+  <div class="modal fade" id="modalAnalise" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h6 class="modal-title">Gerar Análise de Acidente</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <label for="numeroRelatorio" class="form-label">Número do relatório (MM/AAAA)</label>
+          <input type="text" id="numeroRelatorio" class="form-control form-control-sm" placeholder="ex: 01/2025" maxlength="7" autocomplete="off">
+          <div class="form-text small mt-2">Formato: mês com dois dígitos e ano com 4 dígitos (ex: 01/2025)</div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-primary btn-sm" id="btnGerarAnaliseModal">Gerar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Período (mantive inputs date como você preferia) -->
+  <div class="modal fade" id="modalPeriodo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-warning">
+          <h6 class="modal-title">Relatório por Período</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <label for="dataInicio" class="form-label">Data inicial</label>
+          <input type="date" id="dataInicio" class="form-control form-control-sm mb-2">
+
+          <label for="dataFim" class="form-label">Data final</label>
+          <input type="date" id="dataFim" class="form-control form-control-sm">
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-warning btn-sm" id="btnGerarPeriodoModal">Gerar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- 🔹 Modal Estatístico -->
+<div class="modal fade" id="modalEstatistico" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered"> 
+    <div class="modal-content">
+      <div class="modal-header text-white" style="background-color:#007bff;">
+        <h6 class="modal-title">Relatório Estatístico de Acidentes</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+
+        <!-- Tipo de Relatório -->
+        <div class="mb-2">
+          <label for="tipoEstatistico" class="fw-bold">Tipo de Relatório</label>
+          <select id="tipoEstatistico" class="form-select">
+            <option value="geral">Relatório Geral</option>
+            <option value="funcao">Relatório por Função</option>
+            <option value="setor">Relatório por Setor</option>
+          </select>
+        </div>
+
+        <!-- Ano -->
+        <div class="mb-3">
+          <label for="anoEstatistico" class="fw-bold">Ano</label>
+          <input type="number" id="anoEstatistico" class="form-control form-control-sm"
+                 placeholder="Ex: 2025" min="2000" max="2100">
+        </div>
+
+        <!-- Área do gráfico -->
+        <div class="mt-3">
+          <canvas id="graficoEstatistico" height="200"></canvas>
+        </div>
+      </div>
+      <div class="modal-footer">
+  <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+  <button class="btn btn-sm text-white" id="btnGerarEstatistico" style="background-color:#007bff;">Gerar</button>
+  <button class="btn btn-danger btn-sm" id="btnExportarPdf">Exportar PDF</button> <!-- 🔹 Novo botão -->
+</div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script> <!-- 🔹 Plugin -->
+
+<script>
+let grafico; // armazenar instância Chart.js
+
+// Abrir modal estatístico
+document.getElementById("btnEstatistico").addEventListener("click", () => {
+  new bootstrap.Modal(document.getElementById("modalEstatistico")).show();
+});
+
+// Gerar gráfico estatístico
+document.getElementById("btnGerarEstatistico").addEventListener("click", async () => {
+  const tipo = document.getElementById("tipoEstatistico").value;
+  const ano = document.getElementById("anoEstatistico").value;
+
+  if (!ano) {
+    alert("Digite um ano para gerar o relatório.");
+    return;
+  }
+
+  let url = `${API_BASE}/relatorios-estatistico/${tipo}?ano=${encodeURIComponent(ano)}`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Erro ao buscar dados.");
+    const data = await res.json();
+
+    const labels = data.map(item => item.label);
+    const valores = data.map(item => item.total);
+
+    // 🔹 Paleta de cores (vai ciclar se tiver mais barras que cores)
+    const cores = [
+      "#007bff", "#28a745", "#dc3545", "#ffc107", "#17a2b8",
+      "#6f42c1", "#fd7e14", "#20c997", "#e83e8c", "#343a40"
+    ];
+    const coresBarras = labels.map((_, i) => cores[i % cores.length]);
+
+    if (grafico) grafico.destroy();
+
+    const ctx = document.getElementById("graficoEstatistico").getContext("2d");
+    grafico = new Chart(ctx, {
+  type: "bar",
+  data: {
+    labels,
+    datasets: [{
+  label: "Quantidade de Acidentes",
+  data: valores,
+  backgroundColor: coresBarras,
+  borderRadius: 6,
+  barPercentage: 0.5,     // 🔹 largura da barra (0.1 = bem fina, 1 = ocupa tudo)
+  categoryPercentage: 0.6 // 🔹 espaço reservado por categoria
+}]
+
+  },
+  options: {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+    title: {
+      display: false, // 🔹 volta a exibir o título
+        text: `Relatório Estatístico - ${tipo.charAt(0).toUpperCase() + tipo.slice(1) === "Funcao" ? "Função" : tipo.charAt(0).toUpperCase() + tipo.slice(1)} (${ano})`,
+      font: { size: 16, weight: "bold" },
+      padding: { bottom: 20 } // 🔹 espaço entre título e gráfico
+    },
+   datalabels: {
+  anchor: "end",
+  align: "top",   // 🔹 força aparecer em cima da barra
+  clamp: true,    // 🔹 impede de sair da área visível
+  clip: false,    // 🔹 não deixa cortar
+  color: "#000",
+  font: {
+    weight: "bold",
+    size: 12
+      },
+      formatter: (value) => value
+    }
+  },
+  scales: {
+  y: {
+    beginAtZero: true,
+    ticks: { stepSize: 1 },
+    suggestedMax: Math.max(...valores) + 2 // 🔹 sempre deixa espaço extra no topo
+    }
+  }
+},
+
+  plugins: [ChartDataLabels]
+});
+
+
+
+  } catch (err) {
+    alert("Erro: " + err.message);
+    console.error(err);
+  }
+});
+</script>
+
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+  // 🔹 Botão Exportar PDF
+document.getElementById("btnExportarPdf").addEventListener("click", () => {
+  if (!grafico) {
+    alert("Gere o gráfico primeiro!");
+    return;
+  }
+
+  const imgBase64 = grafico.toBase64Image();
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF("l", "mm", "a4"); // paisagem
+
+  // =================== CABEÇALHO ===================
+  // 🔹 Logo (precisa estar em Base64 ou URL acessível)
+  const logoUrl = "Logo.jpg"; // ajuste o caminho relativo (ex: ./img/logo.png)
+  const logoWidth = 70;
+  const logoHeight = 15;
+  pdf.addImage(logoUrl, "JPEG", 15, 10, logoWidth, logoHeight);
+
+ // 🔹 Título
+pdf.setFont("helvetica", "bold");
+pdf.setFontSize(16);
+pdf.text(grafico.options.plugins.title.text, 148, 35, { align: "center" });
+
+
+  // 🔹 Ajuste de tamanho e centralização
+  const largura = 150; // aumenta ou diminui conforme preferir
+  const altura = 60;   // proporcional à largura
+const pageWidth = pdf.internal.pageSize.getWidth();
+const pageHeight = pdf.internal.pageSize.getHeight();
+
+// Calcula posição central
+const x = (pageWidth - largura) / 2;
+const y = (pageHeight - altura) / 2;
+
+  pdf.addImage(imgBase64, "PNG", x, y, largura, altura);
+
+  // 🔹 Abre no navegador
+  const pdfBlobUrl = pdf.output("bloburl");
+  window.open(pdfBlobUrl, "_blank");
+});
+</script>
+
+
+<script src="config.js"></script>
+<script>
+  // Endereço do backend
+  
+  // helpers
+  function formatDateBR(isoDate) {
+    if (!isoDate) return "";
+    const [y,m,d] = isoDate.split("-");
+    return `${d}/${m}/${y}`;
+  }
+
+  // Aplica máscara simples MM/AAAA no input enquanto digita
+  const numeroInput = document.getElementById("numeroRelatorio");
+  numeroInput?.addEventListener("input", (e) => {
+    let v = e.target.value.replace(/\D/g, ""); // só digitos
+    if (v.length > 6) v = v.slice(0,6);
+    if (v.length > 2) v = v.slice(0,2) + "/" + v.slice(2);
+    e.target.value = v;
+  });
+
+  // Abre modal para inserir número
+  document.getElementById("btnAnaliseAcidente").addEventListener("click", () => {
+    // limpa campo antes de abrir
+    if (numeroInput) numeroInput.value = "";
+    new bootstrap.Modal(document.getElementById("modalAnalise")).show();
+  });
+
+  // Abre modal periodo
+  document.getElementById("btnRelatorioPeriodo").addEventListener("click", () => {
+    // limpa inputs
+    document.getElementById("dataInicio").value = "";
+    document.getElementById("dataFim").value = "";
+    new bootstrap.Modal(document.getElementById("modalPeriodo")).show();
+  });
+
+  // Voltar
+  document.getElementById("btnVoltar").addEventListener("click", (e) => {
+    e.preventDefault();
+    window.location.href = "principal.html";
+  });
+
+  // Função para tentar abrir resposta do backend como PDF; se não for PDF, faz fallback com JSON => PDF
+async function fetchAndOpenPdf(url, fallbackFromJson) {
+  try {
+    const nomeLogado = localStorage.getItem("nomeLogado") || "Emitente não informado";
+
+    const res = await fetch(url, {
+      method: "POST", // 🔹 trocado para POST
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emitente: nomeLogado })
+    });
+
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(txt || `Erro ${res.status}`);
+    }
+
+    const contentType = (res.headers.get("content-type") || "").toLowerCase();
+
+      // se o backend retornou PDF
+      if (contentType.includes("application/pdf")) {
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, "_blank");
+        return;
+      }
+
+      // se retornou JSON (fallback)
+      if (contentType.includes("application/json") || contentType.includes("text/json")) {
+        const data = await res.json();
+        await fallbackFromJson(data);
+        return;
+      }
+
+      // se veio outra coisa: tentar transformar em blob e checar
+      const blob = await res.blob();
+      if (blob.type === "application/pdf") {
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, "_blank");
+        return;
+      }
+
+      // fallback genérico: tentar interpretar como texto (mensagem de erro)
+      const text = await blob.text().catch(()=>null);
+      throw new Error(text || "Resposta inesperada do servidor");
+    } catch (err) {
+      console.error(err);
+      alert("Erro: " + (err.message || err));
+    }
+  }
+
+  // Fallback: gerar PDF no cliente a partir de JSON (jsPDF + autotable)
+  async function gerarPdfAnálisePorJson(jsonData, numeroRelatorio) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text(`Análise de Acidente - Relatório ${numeroRelatorio}`, 14, 18);
+
+    // jsonData pode ser um objeto (único) ou array
+    const rows = Array.isArray(jsonData) ? jsonData : (jsonData ? [jsonData] : []);
+    if (rows.length === 0) {
+      doc.setFontSize(12);
+      doc.text("Nenhum dado encontrado.", 14, 36);
+      doc.save(`analise_${numeroRelatorio.replace("/","-")}.pdf`);
+      return;
+    }
+
+  // === Primeiro bloco: Dados Pessoais ===
+  const head = [["Matrícula","Nome","Setor","Função","Telefone","Nascimento"]];
+  const body = rows.map(r => [
+    r.matricula || "",
+    r.nome || "",
+    r.setor || "",
+    r.funcao || "",
+    r.telefone || "",
+    (r.nascimento && /\d{4}-\d{2}-\d{2}/.test(r.nascimento)) 
+      ? formatDateBR(r.nascimento) 
+      : (r.nascimento || "")
+  ]);
+  
+    doc.autoTable({
+      head,
+      body,
+      startY: 28,
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: [25, 118, 210] }
+    });
+
+    doc.save(`analise_${numeroRelatorio.replace("/","-")}.pdf`);
+  }
+
+  async function gerarPdfGeralPorJson(jsonData) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text("Relatório de Acidentes - Geral", 14, 18);
+
+    const rows = Array.isArray(jsonData) ? jsonData : (jsonData ? [jsonData] : []);
+    if (rows.length === 0) {
+      doc.setFontSize(12);
+      doc.text("Nenhum registro encontrado.", 14, 36);
+      doc.save(`relatorio_geral.pdf`);
+      return;
+    }
+
+    const head = [["Relatório","Matrícula","Nome","Setor","Função","Data","Descrição"]];
+    const body = rows.map(r => [
+      r.relatorio || "",
+      r.matricula || "",
+      r.nome || "",
+      r.setor || "",
+      r.funcao || "",
+      (r.data_acidente && /\d{4}-\d{2}-\d{2}/.test(r.data_acidente)) ? formatDateBR(r.data_acidente) : (r.data_acidente || ""),
+      (r.descricao_acidente || "").replace(/\s+/g," ")
+    ]);
+
+    doc.autoTable({
+      head,
+      body,
+      startY: 28,
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: [25, 118, 210] }
+    });
+
+    doc.save("relatorio_geral.pdf");
+  }
+
+  async function gerarPdfPeriodoPorJson(jsonData, inicioISO, fimISO) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text("Relatório de Acidentes - Período", 14, 18);
+    doc.setFontSize(11);
+    doc.text(`Período: ${formatDateBR(inicioISO)} até ${formatDateBR(fimISO)}`, 14, 26);
+
+    const rows = Array.isArray(jsonData) ? jsonData : (jsonData ? [jsonData] : []);
+    if (rows.length === 0) {
+      doc.setFontSize(12);
+      doc.text("Nenhum registro encontrado.", 14, 40);
+      doc.save("relatorio_periodo.pdf");
+      return;
+    }
+
+    const head = [["Relatório","Matrícula","Nome","Setor","Função","Data","Descrição"]];
+    const body = rows.map(r => [
+      r.relatorio || "",
+      r.matricula || "",
+      r.nome || "",
+      r.setor || "",
+      r.funcao || "",
+      (r.data_acidente && /\d{4}-\d{2}-\d{2}/.test(r.data_acidente)) ? formatDateBR(r.data_acidente) : (r.data_acidente || ""),
+      (r.descricao_acidente || "").replace(/\s+/g," ")
+    ]);
+
+    doc.autoTable({
+      head,
+      body,
+      startY: 34,
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: [25, 118, 210] }
+    });
+
+    doc.save("relatorio_periodo.pdf");
+  }
+
+  // Quando clicar em Gerar no modal Análise
+  document.getElementById("btnGerarAnaliseModal").addEventListener("click", async () => {
+    const numero = (document.getElementById("numeroRelatorio").value || "").trim();
+    const regex = /^(0[1-9]|1[0-2])\/\d{4}$/;
+    if (!regex.test(numero)) {
+      return alert("Formato inválido. Use MM/AAAA, ex: 01/2025");
+    }
+
+    // chama backend: /relatorio/acidente/:numero
+const encoded = encodeURIComponent(numero);
+const url = `${API_BASE}/relatorio/acidente/${encoded}`;
+
+
+    // tenta abrir PDF do servidor; se o servidor devolver JSON, faz fallback
+    await fetchAndOpenPdf(url, async (jsonData) => {
+      // o backend pode retornar um objeto (rows[0]) ou array; garantir compatibilidade
+      // se o backend retornar um só objeto (não array), colocar em array
+      const dataArray = Array.isArray(jsonData) ? jsonData : (jsonData ? [jsonData] : []);
+      await gerarPdfAnálisePorJson(dataArray, numero);
+    });
+
+    bootstrap.Modal.getInstance(document.getElementById("modalAnalise")).hide();
+  });
+
+  // Relatório Geral
+  document.getElementById("btnRelatorioGeral").addEventListener("click", () => {
+  const url = `${API_BASE}/relatorios-geral`;
+  // abre o PDF do backend em nova aba
+  window.open(url, "_blank");
+});
+  
+// Relatório por Período (modal)
+document.getElementById("btnGerarPeriodoModal").addEventListener("click", async () => {
+  const inicio = document.getElementById("dataInicio").value;
+  const fim = document.getElementById("dataFim").value;
+  if (!inicio || !fim) return alert("Preencha as duas datas.");
+
+  const url = `${API_BASE}/relatorios-periodo?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}`;
+
+  // 👉 Abre o PDF direto
+  window.open(url, "_blank");
+
+  bootstrap.Modal.getInstance(document.getElementById("modalPeriodo")).hide();
+});
+
+    // Recupera nome do localStorage
+const nomeLogado = localStorage.getItem("nomeLogado");
+
+if (nomeLogado) {
+  document.getElementById("nomeUsuario").textContent = nomeLogado;
+} else {
+  document.getElementById("nomeUsuario").textContent = "Nenhum usuário";
+}
+
+</script>
+</body>
+</html>    

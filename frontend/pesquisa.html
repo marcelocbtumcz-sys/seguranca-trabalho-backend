@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>Pesquisa de Cadastros</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+
+
+ #usuarioTopo {
+  font-size: 14px;
+  color: #333;
+}
+
+  </style>
+</head>
+
+<body class="p-4">
+
+  <!-- 🔹 Proteção frontend -->
+  <script>
+    // Se não houver usuário logado no localStorage, redireciona para login
+    if (!localStorage.getItem("usuarioLogado")) {
+      window.location.href = "login.html";
+    }
+  </script>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="m-0">Pesquisa de Cadastros</h2>
+  
+  <div id="usuarioTopo" class="d-flex align-items-center">
+    <i class="bi bi-person-circle fs-4 me-2"></i>
+    <span id="nomeUsuario"></span>
+  </div>
+</div>
+
+
+  <!-- 🔹 FILTROS -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <form id="form-filtro" class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Matrícula</label>
+          <input type="text" class="form-control" id="filtro-matricula" placeholder="Digite a matrícula">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Nome</label>
+          <input type="text" class="form-control" id="filtro-nome" placeholder="Digite o nome">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Setor</label>
+          <input type="text" class="form-control" id="filtro-setor" placeholder="Digite o setor">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Função</label>
+          <input type="text" class="form-control" id="filtro-funcao" placeholder="Digite a função">
+        </div>
+        <div class="col-12">
+          <button type="button" class="btn btn-primary" id="btn-aplicar-filtro">Aplicar Filtro</button>
+          <button type="button" class="btn btn-secondary" id="btn-limpar-filtro">Limpar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 🔹 GRID -->
+  <table class="table table-bordered" id="tabela-cadastros">
+    <thead class="table-light">
+      <tr>
+        <th>Relatório</th>
+        <th>Matrícula</th>
+        <th>Nome</th>
+        <th>Setor</th>
+        <th>Função</th>
+        <th>Data Acidente</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+   <!-- 🔹 Botão de Voltar -->
+  <div class="mt-3">
+    <a href="principal.html" class="btn btn-secondary" id="btnVoltar">Voltar ao Menu</a>
+  </div>
+
+  <!-- 🔹 Modal de Edição -->
+  <div class="modal fade" id="modal-editar" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Editar Cadastro</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="form-editar" class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Data do Acidente</label>
+              <input type="text" class="form-control" name="data_acidente" id="edit-data-acidente">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Hora do Acidente</label>
+              <input type="text" class="form-control" name="hora_acidente" id="edit-hora-acidente">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Último dia Trabalhado</label>
+              <input type="text" class="form-control" name="ult_dia" id="edit-ult-dia">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Horas Trabalhadas</label>
+              <input type="text" class="form-control" name="horas_trab" id="edit-horas-trab">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Local do Acidente</label>
+              <input type="text" class="form-control" name="local_acidente" id="edit-local-acidente">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Testemunha</label>
+              <input type="text" class="form-control" name="testemunha" id="edit-testemunha">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Descrição do Acidente</label>
+              <textarea class="form-control" name="descricao_acidente" id="edit-descricao" rows="3"></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Providências</label>
+              <textarea class="form-control" name="prov_acidente" id="edit-providencias" rows="3"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" id="btn-salvar">Salvar Alterações</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script src="config.js"></script>
+  
+  <script>
+    let cadastros = [];
+    let idSelecionado = null;
+
+    // 🔹 Carregar todos os registros
+    async function carregarCadastros() {
+     const res = await fetch(`${API_BASE}/cadastro`);
+      cadastros = await res.json();
+      renderizarTabela(cadastros);
+    }
+
+    // 🔹 Renderizar tabela
+    function renderizarTabela(lista) {
+      const tbody = document.querySelector("#tabela-cadastros tbody");
+      tbody.innerHTML = "";
+      lista.forEach(c => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${c.relatorio}</td>
+          <td>${c.matricula}</td>
+          <td>${c.nome}</td>
+          <td>${c.setor}</td>
+          <td>${c.funcao}</td>
+          <td>${c.data_acidente || ""}</td>
+          <td>
+         <button class="btn btn-sm btn-warning" onclick='abrirModal(${JSON.stringify(c)})'>Editar</button>
+       <button class="btn btn-sm btn-danger" onclick='excluirCadastro(${c.id})'>Excluir</button>
+       </td>
+
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 🔹 Filtros
+    document.getElementById("btn-aplicar-filtro").addEventListener("click", () => {
+      const fMat = document.getElementById("filtro-matricula").value.toLowerCase();
+      const fNome = document.getElementById("filtro-nome").value.toLowerCase();
+      const fSetor = document.getElementById("filtro-setor").value.toLowerCase();
+      const fFuncao = document.getElementById("filtro-funcao").value.toLowerCase();
+
+      const filtrados = cadastros.filter(c =>
+        (!fMat || c.matricula?.toLowerCase().includes(fMat)) &&
+        (!fNome || c.nome?.toLowerCase().includes(fNome)) &&
+        (!fSetor || c.setor?.toLowerCase().includes(fSetor)) &&
+        (!fFuncao || c.funcao?.toLowerCase().includes(fFuncao))
+      );
+
+      renderizarTabela(filtrados);
+    });
+
+    document.getElementById("btn-limpar-filtro").addEventListener("click", () => {
+      document.getElementById("form-filtro").reset();
+      renderizarTabela(cadastros);
+    });
+
+    // 🔹 Modal
+   function abrirModal(c) {
+  idSelecionado = c.id;
+
+  if (c.data_acidente) {
+    // 🔹 Banco manda YYYY-MM-DD → converte para DD/MM/YYYY
+    if (c.data_acidente.includes("-")) {
+      const [ano, mes, dia] = c.data_acidente.split("-");
+      document.getElementById("edit-data-acidente").value = `${dia}/${mes}/${ano}`;
+    } else {
+      // caso já venha em DD/MM/YYYY
+      document.getElementById("edit-data-acidente").value = c.data_acidente;
+    }
+  } else {
+    document.getElementById("edit-data-acidente").value = "";
+  }
+
+  document.getElementById("edit-hora-acidente").value = c.hora_acidente || "";
+  document.getElementById("edit-descricao").value = c.descricao_acidente || "";
+  document.getElementById("edit-providencias").value = c.prov_acidente || "";
+  document.getElementById("edit-ult-dia").value = c.ult_dia || "";
+  document.getElementById("edit-horas-trab").value = c.horas_trab || "";
+  document.getElementById("edit-local-acidente").value = c.local_acidente || "";
+  document.getElementById("edit-testemunha").value = c.testemunha || "";
+
+  new bootstrap.Modal(document.getElementById("modal-editar")).show();
+}
+
+document.getElementById("btn-salvar").addEventListener("click", async () => {
+  const form = document.getElementById("form-editar");
+  const data = Object.fromEntries(new FormData(form).entries());
+
+  // 🔹 Converte de DD/MM/YYYY → YYYY-MM-DD antes de salvar
+  if (data.data_acidente && data.data_acidente.includes("/")) {
+    const [dia, mes, ano] = data.data_acidente.split("/");
+    data.data_acidente = `${ano}-${mes}-${dia}`;
+  }
+
+  const res = await fetch(`${API_BASE}/cadastro/${idSelecionado}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  });
+
+  if (res.ok) {
+    carregarCadastros();
+    bootstrap.Modal.getInstance(document.getElementById("modal-editar")).hide();
+    alert("✅ Alterações salvas com sucesso!");
+  } else {
+    alert("❌ Erro ao salvar alterações.");
+  }
+});
+
+
+
+
+    // 🔹 Excluir com confirmação
+  async function excluirCadastro(id) {
+    if (confirm("Deseja realmente excluir este cadastro?")) {
+      await fetch(`${API_BASE}/cadastro/${id}`, { 
+  method: "DELETE" 
+});
+
+      carregarCadastros();
+    }
+  }
+    carregarCadastros();
+
+    // Recupera nome do localStorage
+const nomeLogado = localStorage.getItem("nomeLogado");
+
+if (nomeLogado) {
+  document.getElementById("nomeUsuario").textContent = nomeLogado;
+} else {
+  document.getElementById("nomeUsuario").textContent = "Nenhum usuário";
+}
+
+  </script>
+</body>
+</html>

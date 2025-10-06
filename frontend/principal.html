@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Cadastro de Acidente do Trabalho</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f9;
+    }
+
+    /* Cabeçalho */
+    .header {
+      background-color: #007bff; /* 🔹 azul fixo */
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap; /* permite quebrar linha no mobile */
+    }
+
+    .logo-container {
+      width: 70px;
+      height: 70px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #f8f9fa;
+      border-radius: 10%;
+      margin-right: 10px;
+      overflow: hidden;
+    }
+
+    .logo-container img {
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+    }
+
+    .header-text { line-height: 1.2; }
+
+    /* 🔹 Título integrado no cabeçalho */
+    .system-title {
+      flex: 1 0 100%; /* ocupa largura toda */
+      text-align: center;
+      font-size: 26px;
+      font-weight: bold;
+      color: white;
+      margin-top: 10px;
+    }
+
+    /* Rodapé */
+    #usuarioRodape {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background-color: #f8f9fa;
+      text-align: left;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-top: 1px solid #ddd;
+    }
+
+    /* Temporizador */
+    #session-timer {
+      display: none;
+      background-color: #ffc107;
+      color: #000;
+      font-weight: bold;
+      padding: 8px 16px;
+      position: fixed;
+      bottom: 8px;
+      right: 10px;
+      border-radius: 6px;
+      z-index: 9999;
+    }
+
+    /* Cards */
+    .card-custom {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin: 0 auto;
+      max-width: 350px;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .card-title {
+      font-size: 20px;
+      margin-bottom: 12px;
+      color: #333;
+      font-weight: normal;
+    }
+
+    .btn-main {
+      width: 200px;
+      margin: 8px auto;
+      font-size: 16px;
+      padding: 10px;
+      border-radius: 8px;
+      display: block;
+    }
+
+    /* Responsivo */
+    @media (max-width: 767.98px) {
+      .card-custom { max-width: 100%; min-height: auto; }
+      .btn-main { width: 90%; }
+    }
+
+    /* Usuário */
+    #usuarioTopo { color: white; }
+    #usuarioTopo i { color: white; }
+  </style>
+</head>
+<body>
+
+ <script src="config.js"></script>
+ <script src="/js/auth.js"></script>
+
+  <!-- Cabeçalho -->
+  <div class="header">
+    <!-- 🔹 Logo + texto -->
+    <div class="d-flex align-items-center">
+      <div class="logo-container">
+        <img src="logo-cbtu.png" alt="Logo CBTU">
+      </div>
+      <div class="header-text">
+        <strong>COMPANHIA BRASILEIRA DE TRENS URBANOS DE MACEIÓ</strong><br>
+        Superintendência de Trens Urbanos de Maceió
+      </div>
+    </div>
+
+    <!-- 🔹 Usuário alinhado à direita -->
+    <div id="usuarioTopo" class="d-flex align-items-center">
+      <i class="bi bi-person-circle fs-4 me-2"></i>
+      <span id="nomeUsuario"></span>
+    </div>
+
+    <!-- 🔹 Título central dentro da mesma faixa -->
+    <div class="system-title">Sistema de Controle SESMT</div>
+  </div>
+
+    <!-- Temporizador -->
+  <div id="session-timer">
+    Sessão expira em <span id="timer"></span>
+  </div>
+
+  <!-- Conteúdo principal: TRÊS CAIXAS LADO A LADO -->
+  <div class="main-container">
+    <div class="container">
+      <div class="row g-4 justify-content-center align-items-start">
+        <!-- Acidentes de Trabalho -->
+        <div class="col-md-4 d-flex justify-content-center">
+          <div class="card-custom text-center">
+            <div class="card-title">Acidentes do Trabalho</div>
+            <button id="btnCadastrarAcidente" class="btn btn-primary btn-main">Cadastrar Acidente</button>
+            <button id="btnRelatorios" class="btn btn-success btn-main">Relatórios</button>
+            <button id="btnPesquisa" class="btn btn-dark btn-main">Pesquisar Cadastros</button>
+          </div>
+        </div>
+
+        <!-- Entrega de EPI -->
+        <div class="col-md-4 d-flex justify-content-center">
+          <div class="card-custom text-center">
+            <div class="card-title">Entrega de EPI</div>
+            <!-- IDs novos (placeholders) - não removi seu código original -->
+            <button id="btnCadastrarEpi" class="btn btn-primary btn-main">Gerenciar EPIs</button>
+            <button id="btnRelatorioEpi" class="btn btn-success btn-main">Relatórios</button>
+            <button id="btnentregarEpi" class="btn btn-dark btn-main">Entregar EPI</button>
+          </div>
+        </div>
+
+        <!-- Configurações -->
+        <div class="col-md-4 d-flex justify-content-center">
+          <div class="card-custom text-center">
+            <div class="card-title">Configurações</div>
+            <button id="btnusuario" class="btn btn-secondary btn-main">Cadastrar Usuário</button>
+            <button id="btnSair" class="btn btn-danger btn-main">Sair</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- Modal Renovar -->
+  <div class="modal fade" id="modalRenovar" tabindex="-1" aria-labelledby="modalRenovarLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-warning">
+          <h5 class="modal-title" id="modalRenovarLabel">⚠️ Sessão quase expirada</h5>
+        </div>
+        <div class="modal-body">
+          Sua sessão vai expirar em breve.<br>
+          Deseja renovar para continuar conectado?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" id="btnLogout">Sair</button>
+          <button type="button" class="btn btn-success" id="btnRenovar">Renovar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- 🔹 Modal Relatórios EPI -->
+<div class="modal fade" id="modalRelatorioEpi" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Relatórios de EPI</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <select id="tipoRelatorioEpi" class="form-control">
+          <option value="">Selecione o tipo de relatório</option>
+          <option value="geral">Relatório Geral de EPIs Ativos</option>
+          <option value="funcionario">Relatório de EPIs por Funcionário</option>
+        </select>
+
+        <div id="grupoFuncionario" style="display:none; margin-top:10px;">
+  <label for="selectFuncionario">Selecione o Funcionário:</label>
+  <select id="selectFuncionario" name="selectFuncionario" class="form-control"
+          onfocus="this.size=5;"
+          onblur="this.size=1;"
+          onchange="this.size=1; this.blur();">
+    <option value="">-- Escolha um funcionário --</option>
+  </select>
+</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btnGerarRelatorioEpi" class="btn btn-primary">Gerar Relatório</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    /* ===========================
+       MANTIVEI SEU SCRIPT ORIGINAL
+       =========================== */
+
+    document.getElementById("btnCadastrarAcidente").addEventListener("click", () => {
+      window.location.href = "acidentes.html"; 
+    });
+
+    document.getElementById("btnRelatorios").addEventListener("click", () => {
+      window.location.href = "relatorios.html"; 
+    });
+
+    document.getElementById("btnPesquisa").addEventListener("click", () => {
+      window.location.href = "pesquisa.html"; 
+    });
+
+    document.getElementById("btnusuario").addEventListener("click", () => {
+      window.location.href = "usuario.html";
+    });
+
+   document.getElementById("btnSair").addEventListener("click", async () => {
+  // Remove todos os dados de login
+  localStorage.removeItem("usuarioLogado");
+  localStorage.removeItem("nomeLogado");
+  localStorage.removeItem("token"); // se estiver usando JWT
+
+  // Se você tiver sessão no backend, faça logout lá
+  try {
+    await fetch(`${API_BASE}/logout`, { method: "POST", credentials: "include" });
+  } catch(err) {
+    console.warn("Erro ao encerrar sessão no servidor:", err);
+  }
+
+  // Redireciona para login
+  window.location.href = "login.html";
+});
+
+    // Recupera nome do localStorage
+const nomeLogado = localStorage.getItem("nomeLogado");
+
+if (nomeLogado) {
+  document.getElementById("nomeUsuario").textContent = nomeLogado;
+} else {
+  document.getElementById("nomeUsuario").textContent = "Nenhum usuário";
+}
+
+
+// ---------------- CONTADOR DE SESSÃO ----------------
+    let tempoSessao = 3600; // 3600s = 1hora
+    let contador = tempoSessao;
+    let intervalo;
+
+    function iniciarContador() {
+      document.getElementById("session-timer").style.display = "block";
+      contador = tempoSessao;
+      atualizarTimer();
+      intervalo = setInterval(() => {
+        contador--;
+        atualizarTimer();
+
+        if (contador === 30) {
+          let modal = new bootstrap.Modal(document.getElementById("modalRenovar"));
+          modal.show();
+        }
+
+        if (contador <= 0) {
+          clearInterval(intervalo);
+          logout();
+        }
+      }, 1000);
+    }
+
+    function atualizarTimer() {
+      const min = Math.floor(contador / 60);
+      const seg = contador % 60;
+      document.getElementById("timer").textContent = `${min}:${seg.toString().padStart(2,"0")}`;
+    }
+
+    function renovarSessao() {
+      clearInterval(intervalo);
+      iniciarContador();
+      bootstrap.Modal.getInstance(document.getElementById("modalRenovar")).hide();
+    }
+
+    function logout() {
+      localStorage.removeItem("usuarioLogado");
+      localStorage.removeItem("nomeLogado");
+      alert("Sessão expirada. Faça login novamente.");
+      window.location.href = "login.html";
+    }
+
+    // Botões modal
+    document.getElementById("btnRenovar").addEventListener("click", renovarSessao);
+    document.getElementById("btnLogout").addEventListener("click", logout);
+
+    // Inicia quando abrir a tela principal
+    window.addEventListener("load", iniciarContador);
+
+ 
+let tempoRestante = localStorage.getItem("tempoRestante")
+  ? parseInt(localStorage.getItem("tempoRestante"))
+  : 3600; // 3600s = 1 hora
+
+const timerEl = document.getElementById("session-timer");
+timerEl.style.display = "inline-block";
+
+function atualizarTimer() {
+  let minutos = Math.floor(tempoRestante / 60);
+  let segundos = tempoRestante % 60;
+  timerEl.textContent = `Sessão expira em ⏳ ${minutos}:${segundos.toString().padStart(2, "0")}`;
+}
+
+// Atualiza a cada segundo
+setInterval(() => {
+  if (tempoRestante > 0) {
+    tempoRestante--;
+    localStorage.setItem("tempoRestante", tempoRestante); // 🔹 salva
+    atualizarTimer();
+  } else {
+    localStorage.removeItem("tempoRestante"); // 🔹 limpa quando expira
+    alert("Sessão expirada!");
+    window.location.href = "login.html";
+  }
+}, 1000);
+
+atualizarTimer();
+
+/* ===========================
+   HANDLERS ADICIONAIS (EPI)
+   =========================== */
+/* apenas placeholders para os botões novos de EPI (não removi nada do seu código) */
+const btnCadastrarEpi = document.getElementById("btnCadastrarEpi");
+if (btnCadastrarEpi) {
+  btnCadastrarEpi.addEventListener("click", () => {
+    window.location.href = "epi.html"; // 🔹 abre a tela de EPIs
+  });
+}
+
+const btnentregarEpi = document.getElementById("btnentregarEpi");
+if (btnentregarEpi) {
+  btnentregarEpi.addEventListener("click", () => {
+    window.location.href = "entregaepi.html"; // 🔹 abre a tela de Entrega de EPIs
+  });
+}
+
+const btnRelatorioEpi = document.getElementById("btnRelatorioEpi");
+if (btnRelatorioEpi) {
+  btnRelatorioEpi.addEventListener("click", () => {
+    const modal = new bootstrap.Modal(document.getElementById("modalRelatorioEpi"));
+    modal.show();
+  });
+}
+
+document.getElementById("btnGerarRelatorioEpi").addEventListener("click", () => {
+  const tipo = document.getElementById("tipoRelatorioEpi").value;
+  if (!tipo) {
+    alert("Selecione um tipo de relatório");
+    return;
+  }
+
+  if (tipo === "geral") {
+    window.open(`${API_BASE}/relatorios-epi-geral`, "_blank");
+} else if (tipo === "funcionario") {
+  const nome = document.getElementById("selectFuncionario").value;
+  if (!nome) {
+    alert("Selecione um funcionário!");
+    return;
+  }
+  window.open(`${API_BASE}/relatorios-epi-funcionario?nome=${encodeURIComponent(nome)}`, "_blank");
+}
+
+});
+
+// Quando escolhe relatório por funcionário → carregar lista
+document.getElementById("tipoRelatorioEpi").addEventListener("change", async (e) => {
+  const grupo = document.getElementById("grupoFuncionario");
+  const select = document.getElementById("selectFuncionario");
+
+  if (e.target.value === "funcionario") {
+    grupo.style.display = "block";
+
+    // 🔹 Buscar lista de nomes
+    try {
+      const res = await fetch(`${API_BASE}/funcionarios-nomes`);
+      const funcionarios = await res.json();
+
+      // limpar opções antigas
+      select.innerHTML = `<option value="">-- Escolha um funcionário --</option>`;
+
+      funcionarios.forEach(f => {
+        const opt = document.createElement("option");
+        opt.value = f.nome;
+        opt.textContent = f.nome;
+        select.appendChild(opt);
+      });
+    } catch (err) {
+      console.error("Erro ao carregar funcionários:", err);
+    }
+  } else {
+    grupo.style.display = "none";
+  }
+});
+
+  </script>
+
+</body>
+</html>

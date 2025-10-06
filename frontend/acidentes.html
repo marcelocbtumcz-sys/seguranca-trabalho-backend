@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Cadastro de Acidente do Trabalho</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f9;
+    }
+
+    /* Cabeçalho */
+    .header {
+      background-color: #007bff; /* 🔹 azul fixo */
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap; /* permite quebrar linha no mobile */
+    }
+
+    .logo-container {
+      width: 70px;
+      height: 70px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #f8f9fa;
+      border-radius: 10%;
+      margin-right: 10px;
+      overflow: hidden;
+    }
+
+    .logo-container img {
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+    }
+
+    .header-text { line-height: 1.2; }
+
+    /* 🔹 Título integrado no cabeçalho */
+    .system-title {
+      flex: 1 0 100%; /* ocupa largura toda */
+      text-align: center;
+      font-size: 26px;
+      font-weight: bold;
+      color: white;
+      margin-top: 10px;
+    }
+
+      /* Deixa os títulos das seções em negrito e maiores */
+  .secao span {
+    font-size: 20px;
+    font-weight: bold;
+    margin-right: 10px;
+    white-space: nowrap;
+  }
+
+  /* Aumenta espaçamento entre linhas de campos */
+  .row.mb-3 {
+    margin-bottom: 1.5rem !important; /* 🔹 mais espaço entre grupos */
+  }
+
+  /* Espaço entre label e campo */
+  label {
+    font-weight: bold;       /* 🔹 negrito */
+    margin-bottom: 6px;      /* 🔹 separa do campo */
+    display: inline-block;
+  }
+
+  /* Caixa de texto / select mais “respirado” */
+  .form-control, .form-select {
+    padding: 8px 10px;
+  }
+
+  /* Espaçamento maior entre seções */
+  .secao {
+    display: flex;
+    align-items: center;
+    margin: 30px 0 20px; /* 🔹 aumenta respiro acima/abaixo */
+  }
+
+  .secao .linha {
+    flex-grow: 1;
+    height: 2px;
+    background-color: #aaa;
+  }
+
+    /* Usuário */
+    #usuarioTopo { color: white; }
+    #usuarioTopo i { color: white; }
+  </style>
+</head>
+<body>
+  
+<script src="config.js"></script>
+
+  <!-- Cabeçalho -->
+  <div class="header">
+    <!-- 🔹 Logo + texto -->
+    <div class="d-flex align-items-center">
+      <div class="logo-container">
+        <img src="logo-cbtu.png" alt="Logo CBTU">
+      </div>
+      <div class="header-text">
+        <strong>COMPANHIA BRASILEIRA DE TRENS URBANOS DE MACEIÓ</strong><br>
+        Superintendência de Trens Urbanos de Maceió
+      </div>
+    </div>
+
+    <!-- 🔹 Usuário alinhado à direita -->
+    <div id="usuarioTopo" class="d-flex align-items-center">
+      <i class="bi bi-person-circle fs-4 me-2"></i>
+      <span id="nomeUsuario"></span>
+    </div>
+
+    <!-- 🔹 Título central dentro da mesma faixa -->
+    <div class="system-title">Relatório de Comunicação de Acidentado</div>
+  </div>
+
+<!-- Dados Pessoais -->
+<div class="secao">
+  <span>Dados Pessoais</span>
+  <div class="linha"></div>
+</div>
+<div class="row mb-3">
+  <div class="col-4">
+    <label for="relatorio">Relatório nº</label>
+    <input type="text" id="relatorio" name="relatorio" class="form-control" readonly>
+  </div>
+  <div class="col-4">
+    <label>Matrícula</label>
+    <select id="matricula" class="form-control">
+      <option value="">Selecione</option>
+    </select>
+  </div>
+</div>
+<div class="row mb-3">
+  <div class="col-8">
+    <label>Nome</label>
+    <input type="text" id="nome-funcionario" class="form-control" readonly>
+  </div>
+  <div class="col-4">
+    <label>Setor</label>
+    <input type="text" id="setor-funcionario" class="form-control" readonly>
+  </div>
+</div>
+<div class="row mb-3">
+  <div class="col-4">
+    <label>Função</label>
+    <input type="text" id="funcao-funcionario" class="form-control" readonly>
+  </div>
+  <div class="col-4">
+    <label>Data Nascimento</label>
+    <input type="date" id="nascimento" class="form-control" name="nascimento">
+  </div>
+  <div class="col-4">
+    <label>Telefone</label>
+    <input type="text" class="form-control" id="telefone">
+  </div>
+</div>
+
+<!-- Dados da Empresa -->
+ <div class="secao">
+  <span>Dados da Empresa</span>
+  <div class="linha"></div>
+</div>
+<div class="row mb-3">
+  <div class="col-4">
+    <label>CNPJ</label>
+    <select id="cnpj-empresa" class="form-control">
+      <option value="">Selecione</option>
+    </select>
+  </div>
+
+  <div class="col-4">
+    <label>Empresa</label>
+    <input type="text" class="form-control" id="nome-empresa">
+  </div>
+  <div class="col-4">
+    <label>CEP</label>
+    <input type="text" class="form-control" id="cep-empresa">
+  </div>
+</div>
+<div class="row mb-3">
+  <div class="col-6">
+    <label>Endereço</label>
+    <input type="text" class="form-control" id="endereco-empresa">
+  </div>
+  <div class="col-6">
+    <label>Telefone</label>
+    <input type="text" class="form-control" id="telefone-empresa">
+  </div>
+</div>
+
+<!-- Comunicação do Acidente -->
+ <div class="secao">
+  <span>Comunicação de Acidente do Trabalho</span>
+  <div class="linha"></div>
+</div>
+<div class="row mb-3">
+  <div class="col">
+    <label>Tipo de CAT</label>
+    <select id="tipo-cat" class="form-control" name="tipo_cat">
+      <option value="">Selecione</option>
+      <option value="Inicial">Inicial</option>
+      <option value="Reabertura">Reabertura</option>
+      <option value="Óbito">Óbito</option>
+    </select>
+  </div>
+  <div class="col">
+    <label>Iniciativa da CAT</label>
+    <select id="ini-cat" class="form-control" name="ini_cat">
+      <option value="">Selecione</option>
+      <option value="Iniciativa do Empregador">Iniciativa do Empregador</option>
+      <option value="Ordem Judicial">Ordem Judicial</option>
+      <option value="Determinação do Orgão Fiscalizador">Determinação do Orgão Fiscalizador</option>
+    </select>
+  </div>
+  <div class="col">
+    <label>Ultimo dia Trabalhado</label>
+    <input type="date" id="ult-dia" class="form-control" name="ult_dia">
+  </div>
+</div>
+
+<div class="row mb-3">
+  <div class="col">
+    <label>Comunicou a Polícia</label>
+    <select id="comun-polic" class="form-control" name="comun_polic">
+      <option value="">Selecione</option>
+      <option value="Sim">Sim</option>
+      <option value="Não">Não</option>
+    </select>
+  </div>
+  <div class="col">
+    <label>Houve Óbito?</label>
+    <select id="houve-obito" class="form-control" name="houve_obito">
+      <option value="">Selecione</option>
+      <option value="Sim">Sim</option>
+      <option value="Não">Não</option>
+    </select>
+  </div>
+  <div class="col">
+    <label>Data do Óbito</label>
+    <input type="date" id="data-obito" class="form-control" name="data_obito">
+  </div>
+</div>
+<div class="row mb-3">
+  <div class="col-4">
+    <label>Código do Acidente</label>
+    <input type="text" id="codigo-acidente" class="form-control" readonly>
+  </div>
+  <div class="col-8">
+    <label>Situação Geradora do Acidente</label>
+    <select id="situacao-acidente" class="form-control">
+      <option value="">Carregando...</option>
+    </select>
+  </div>
+</div>
+
+<div class="row mb-3">
+  <div class="col-4">
+    <label>Código da Doença</label>
+    <input type="text" id="codigo-doenca" class="form-control" readonly>
+  </div>
+  <div class="col-8">
+    <label>Situação Geradora da Doença</label>
+    <select id="situacao-doenca" class="form-control">
+      <option value="">Carregando...</option>
+    </select>
+  </div>
+</div>
+
+<!-- Dados do Acidente -->
+<div class="secao">
+  <span>Dados do Acidente</span>
+  <div class="linha"></div>
+</div>
+<div class="row mb-3">
+  <div class="col">
+    <label>Tipo de Acidente</label>
+    <select id="tipo-acidente" class="form-control" name="tipo_acidente">
+      <option value="">Selecione</option>
+      <option value="Típico">Típico</option>
+      <option value="Trajeto">Trajeto</option>
+      <option value="Doença">Doença</option>
+    </select>
+  </div>
+  <div class="col">
+    <label>Data do Acidente</label>
+    <input type="date" id="data-acidente" class="form-control" name="data_acidente">
+  </div>
+</div>
+
+<div class="row mb-3">
+  <div class="col">
+    <label>Horas Trabalhadas antes do Acidente</label>
+    <input type="time" id="horas-trabalhadas" class="form-control" name="horas_trabalhadas">
+  </div>
+  <div class="col">
+    <label>Hora do Acidente</label>
+    <input type="time" id="hora-acidente" class="form-control" name="hora_acidente">
+  </div>
+</div>
+
+<div class="row mb-3">
+  <div class="col-4">
+    <label>Código do Agente Causador</label>
+    <input type="text" id="codigo-agente-causador" class="form-control" readonly>
+  </div>
+  <div class="col-8">
+    <label>Agente Causador</label>
+    <select id="agente-causador" class="form-control">
+      <option value="">Carregando...</option>
+    </select>
+  </div>
+  </div>
+
+<div class="row mb-3">
+  <div class="col-4">
+    <label>Código Parte do Corpo Atingida</label>
+    <input type="text" id="codigo-parte-corpo" class="form-control" readonly>
+  </div>
+  <div class="col-8">
+    <label>Parte do Corpo Atingida</label>
+    <select id="parte-corpo" class="form-control">
+      <option value="">Carregando...</option>
+    </select>
+  </div>
+  </div>
+
+    <div class="col-4">
+    <label>Lateralidade</label>
+    <select id="lateralidade" class="form-control" name="lateralidade">
+      <option value="">Selecione</option>
+      <option value="Esquerda">Esquerda</option>
+      <option value="Direita">Direita</option>
+      <option value="Ambas">Ambas</option>
+      <option value="Não Aplicável">Não Aplicável</option>
+    </select>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col">
+    <label>Local do Acidente</label>
+    <select id="local-acidente" class="form-control" name="local_acidente">
+      <option value="">Selecione</option>
+      <option value="Estabecimento do Empregador">Estabecimento do Empregador</option>
+      <option value="Estabecimento de Terceiros">Estabecimento de Terceiros</option>
+      <option value="Via Pública">Via Pública</option>
+      <option value="Via Rural">Via Rural</option>
+      <option value="Outros">Outros</option>
+    </select>
+  </div>
+  <div class="col">
+<label for="testemunha" class="form-label">Testemunha</label>
+<input 
+  type="text" 
+  id="testemunha" 
+  name="testemunha" 
+  class="form-control" 
+  maxlength="100">
+<small id="testemunha_count" class="form-text text-muted">0 / 100 caracteres</small>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col">
+    <label>Já Sofreu Acidente?</label>
+    <select id="ja-sofreu-acidente" class="form-control" name="ja_sofreu_acidente">
+      <option value="">Selecione</option>
+      <option value="Sim">Sim</option>
+      <option value="Não">Não</option>
+    </select>
+  </div>
+  <div class="col">
+    <label>Estava Usando EPI?</label>
+    <select id="usando-epi" class="form-control" name="usando_epi">
+      <option value="">Selecione</option>
+      <option value="Sim">Sim</option>
+      <option value="Não">Não</option>
+      <option value="Não se Aplica">Não se Aplica</option>
+    </select>
+  </div>
+</div>
+
+<!-- Descrição do Acidente -->
+<div class="secao">
+  <span>Descrição do Acidente</span>
+  <div class="linha"></div>
+</div>
+<div class="mb-3">
+ <div class="row mt-3">
+  <!-- Descrição do Acidente -->
+  <div class="col-md-6">
+      <label for="descricao_acidente" class="form-label">Descrição do Acidente do Trabalho</label>
+  <textarea id="descricao_acidente" name="descricao_acidente" class="form-control" rows="4" maxlength="320"></textarea>
+  <small id="descricao_acidente_count" class="form-text text-muted">0 / 320 caracteres</small>
+  </div>
+
+  <!-- Providências -->
+  <div class="col-md-6">
+   <label for="prov_acidente" class="form-label">Providências após o Acidente do Trabalho</label>
+  <textarea id="prov_acidente" name="prov_acidente" class="form-control" rows="4" maxlength="320"></textarea>
+  <small id="prov_acidente_count" class="form-text text-muted">0 / 320 caracteres</small>
+</div>
+</div>
+
+<script>
+function atualizarContador(idTextarea, idContador, max) {
+  const campo = document.getElementById(idTextarea);
+  const contador = document.getElementById(idContador);
+
+  campo.addEventListener("input", () => {
+    const usado = campo.value.length;
+    contador.textContent = `${usado} / ${max} caracteres`;
+  });
+}
+
+// Aplicar nos dois campos
+atualizarContador("descricao_acidente", "descricao_acidente_count", 320);
+atualizarContador("prov_acidente", "prov_acidente_count", 320);
+atualizarContador("testemunha", "testemunha_count", 100); // 👈 novo campo
+</script>
+
+<div class="d-flex gap-2 mt-3">
+  <button id="btnSalvar" type="button" class="btn btn-primary">Salvar Relatório</button>
+  <button id="voltar" type="button" class="btn btn-secondary">⬅️ Voltar</button>
+</div>
+
+
+<script src="config.js"></script>
+<script>
+  
+  // Máscaras simples (mantive como antes — requer ids corretos)
+  function aplicarMascara(id, mask) {
+    const input = document.getElementById(id);
+    if (!input) return;
+    input.addEventListener("input", function() {
+      let valor = this.value.replace(/\D/g, "");
+      let novoValor = "";
+      let i = 0;
+      for (let m of mask) {
+        if (m === "#") {
+          if (valor[i]) { novoValor += valor[i++]; }
+        } else {
+          novoValor += m;
+        }
+      }
+      this.value = novoValor;
+    });
+  }
+
+  // ids usados nas máscaras (verifique se existem no HTML)
+  aplicarMascara("telefone", "(##) #####-####");
+  aplicarMascara("telefone-empresa", "(##) ######-####");
+  aplicarMascara("hora-acidente", "##:##");
+  aplicarMascara("cep-empresa", "#####-###");
+  aplicarMascara("cnpj-empresa", "##.###.###/####-##");
+  aplicarMascara("horas-trabalhadas", "##:##");
+
+ // -------------------------
+// Lógica principal
+// -------------------------
+async function carregarFuncionarios() {
+  try {
+    const res = await fetch(`${API_BASE}/funcionarios`);
+    const funcionarios = await res.json();
+    const select = document.getElementById("matricula");
+    select.innerHTML = '<option value="">Selecione</option>';
+
+    // ✅ Ordena as matrículas numericamente
+    (funcionarios || [])
+      .sort((a, b) => (a.matricula ?? a.Matricula ?? 0) - (b.matricula ?? b.Matricula ?? 0))
+      .forEach(func => {
+        const option = document.createElement("option");
+        option.value = func.matricula ?? func.Matricula ?? "";
+        option.textContent = func.matricula ?? func.Matricula ?? "";
+        select.appendChild(option);
+      });
+
+    select.addEventListener("change", function() {
+      const selecionado = funcionarios.find(f => String(f.matricula ?? f.Matricula) === this.value);
+      if (selecionado) {
+        document.getElementById("nome-funcionario").value   = selecionado.nome ?? selecionado.Nome ?? "";
+        document.getElementById("funcao-funcionario").value = selecionado.cargo ?? selecionado.Cargo ?? "";
+        document.getElementById("setor-funcionario").value  = selecionado.setor ?? selecionado.Setor ?? "";
+      } else {
+        document.getElementById("nome-funcionario").value = "";
+        document.getElementById("funcao-funcionario").value = "";
+        document.getElementById("setor-funcionario").value = "";
+      }
+    });
+  } catch (err) {
+    console.error("Erro ao carregar funcionários:", err);
+  }
+}
+
+async function carregarEmpresas() {
+  try {
+    const res = await fetch(`${API_BASE}/empresa`);
+    const empresas = await res.json();
+    const select = document.getElementById("cnpj-empresa");
+    select.innerHTML = '<option value="">Selecione</option>';
+
+    // ✅ Ordena os CNPJs em ordem crescente (alfanumérica)
+    (empresas || [])
+      .sort((a, b) => (a.cnpj ?? "").localeCompare(b.cnpj ?? ""))
+      .forEach(emp => {
+        const option = document.createElement("option");
+        option.value = emp.cnpj;
+        option.textContent = emp.cnpj;
+        select.appendChild(option);
+      });
+
+    select.addEventListener("change", function() {
+      const selecionado = empresas.find(e => e.cnpj === this.value);
+      if (selecionado) {
+        document.getElementById("nome-empresa").value     = selecionado.nome ?? "";
+        document.getElementById("endereco-empresa").value = selecionado.endereco ?? "";
+        document.getElementById("telefone-empresa").value = selecionado.tel_empresa ?? "";
+        document.getElementById("cep-empresa").value      = selecionado.cep ?? "";
+      } else {
+        document.getElementById("nome-empresa").value = "";
+        document.getElementById("endereco-empresa").value = "";
+        document.getElementById("telefone-empresa").value = "";
+        document.getElementById("cep-empresa").value = "";
+      }
+    });
+  } catch (err) {
+    console.error("Erro ao carregar empresas:", err);
+  }
+}
+
+
+  async function carregarOpcoes(apiUrl, selectId, inputCodigoId) {
+    try {
+      const res = await fetch(apiUrl);
+      const raw = await res.json();
+      const data = (raw || []).map(item => ({
+        codigo: item.codigo ?? item.Codigo ?? item.CODIGO ?? null,
+        descricao: item.descricao ?? item.Descricao ?? item.DESCRICAO ?? item.DESCRIPTION ?? ""
+      }));
+      const select = document.getElementById(selectId);
+      const inputCodigo = inputCodigoId ? document.getElementById(inputCodigoId) : null;
+      select.innerHTML = '<option value="">Selecione</option>';
+      data.forEach(item => {
+        const option = document.createElement("option");
+        option.value = item.descricao;
+        option.textContent = item.descricao;
+        select.appendChild(option);
+      });
+      if (inputCodigo) {
+        select.addEventListener("change", function() {
+          const selecionado = data.find(d => d.descricao === this.value);
+          inputCodigo.value = selecionado ? (selecionado.codigo ?? "") : "";
+        });
+      }
+    } catch (err) {
+      console.error("Erro ao carregar opções de", selectId, err);
+      const select = document.getElementById(selectId);
+      if (select) select.innerHTML = '<option value="">Erro ao carregar</option>';
+    }
+  }
+
+  // limpa todos os inputs/selects/textarea (mantém #relatorio até buscarmos o próximo)
+async function fetchNextNumero() {
+  try {
+    const res = await fetch(`${API_BASE}/cadastro/gerar-relatorio`, {
+      credentials: "include"
+    });
+    if (!res.ok) throw new Error("Erro ao buscar número do relatório");
+
+    const data = await res.json();
+    console.log("🔹 Resposta crua:", data);
+
+    const numero = data.numeroRelatorio || "";
+
+    const campo = document.getElementById("relatorio");
+    if (!campo) {
+      console.error("❌ Campo #relatorio não encontrado no DOM!");
+      return;
+    }
+
+    campo.value = numero;
+    console.log("✅ Número do relatório preenchido:", numero);
+
+  } catch (err) {
+    console.error("Erro ao buscar próximo número do relatório:", err);
+  }
+}
+
+// limpa todos os inputs/selects/textarea (mantém #relatorio até buscarmos o próximo)
+async function limparCamposEBuscarProximo() {
+  document.querySelectorAll("input, select, textarea").forEach(el => {
+    if (el.id === "relatorio") return; // vamos trocar pelo próximo do backend
+    if (el.tagName === "SELECT") el.selectedIndex = 0;
+    else el.value = "";
+  });
+
+  await fetchNextNumero();
+}
+
+// 🔹 já chama logo quando a página abre
+document.addEventListener("DOMContentLoaded", () => {
+  fetchNextNumero();
+});
+
+  // montar objeto de envio (mesmos nomes que backend espera)
+  function montarDadosParaEnvio() {
+    return {
+      relatorio: document.getElementById("relatorio").value,
+      matricula: document.getElementById("matricula").value,
+      nome: document.getElementById("nome-funcionario").value,
+      nascimento: document.getElementById("nascimento").value,
+      telefone: document.getElementById("telefone").value,
+      setor: document.getElementById("setor-funcionario").value,
+      funcao: document.getElementById("funcao-funcionario").value,
+      cnpj: document.getElementById("cnpj-empresa").value,
+      empresa: document.getElementById("nome-empresa").value,
+      tel_empresa: document.getElementById("telefone-empresa").value,
+      endereco: document.getElementById("endereco-empresa").value,
+      cep: document.getElementById("cep-empresa").value,
+      tipo_cat: document.getElementById("tipo-cat").value,
+      ult_dia: document.getElementById("ult-dia").value,
+      comun_policia: document.getElementById("comun-polic").value,
+      houve_obito: document.getElementById("houve-obito").value,
+      data_obito: document.getElementById("data-obito").value,
+      cod_doenca: document.getElementById("codigo-doenca").value,
+      situacao_doenca: document.getElementById("situacao-doenca").value,
+      cod_acidente: document.getElementById("codigo-acidente").value,
+      situacao_acidente: document.getElementById("situacao-acidente").value,
+      inicia_cat: document.getElementById("ini-cat").value,
+      tipo_acidente: document.getElementById("tipo-acidente").value,
+      data_acidente: document.getElementById("data-acidente").value,
+      horas_trab: document.getElementById("horas-trabalhadas").value,
+      hora_acidente: document.getElementById("hora-acidente").value,
+      cod_parte_corpo: document.getElementById("codigo-agente-causador").value,
+      parte_corpo: document.getElementById("agente-causador").value,
+      cod_parte_corpo: document.getElementById("codigo-parte-corpo").value,
+      parte_corpo: document.getElementById("parte-corpo").value,
+      lateralidade: document.getElementById("lateralidade").value,
+      local_acidente: document.getElementById("local-acidente").value,
+      testemunha: document.getElementById("testemunha").value,
+      sofreu_acidente: document.getElementById("ja-sofreu-acidente").value,
+      epi: document.getElementById("usando-epi").value,
+       descricao_acidente: document.getElementById("descricao_acidente").value,
+       prov_acidente: document.getElementById("prov_acidente").value
+    };
+  }
+
+// Botão Voltar
+    document.getElementById("voltar").addEventListener("click", () => {
+      window.location.href = "principal.html"; // ajuste para o nome da tela principal
+    });
+
+   async function salvarRelatorioHandler() {
+    const btn = document.getElementById("btnSalvar");
+    btn.disabled = true;
+    btn.textContent = "Salvando...";
+
+    // validação: se houve óbito = "Não", limpar e desabilitar a data do óbito
+    const houveObito = document.getElementById("houve-obito").value;
+    const dataObito = document.getElementById("data-obito");
+
+    if (houveObito === "Não") {
+      dataObito.value = "";
+      dataObito.disabled = true;
+    } else if (houveObito === "Sim") {
+      dataObito.disabled = false;
+      if (!dataObito.value) {
+        alert("⚠️ Informe a data do óbito.");
+        btn.disabled = false;
+        btn.textContent = "Salvar Relatório";
+        return;
+      }
+    }
+
+    const dados = montarDadosParaEnvio();
+    console.log("Enviando dados:", dados);
+
+    try {
+      const res = await fetch(`${API_BASE}/cadastro`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dados)
+      });
+
+      if (!res.ok) {
+        const txt = await res.text();
+        console.error("Resposta de erro do servidor:", res.status, txt);
+        alert("❌ Erro ao gerar relatório! Veja console para detalhes.");
+        return;
+      }
+
+      const result = await res.json();
+      console.log("Retorno do servidor:", result);
+      alert(`✅ Sucesso ao gerar relatório!\nNúmero: ${result.relatorio || result.relatorioGerado || "-"}`);
+
+      // limpa e busca próximo número
+      await limparCamposEBuscarProximo();
+
+      // garantir que campo de data do óbito volte a ficar habilitado para o próximo
+      dataObito.disabled = false;
+
+    } catch (err) {
+      console.error("Erro na requisição:", err);
+      alert("❌ Erro ao gerar relatório! Veja console.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Salvar Relatório";
+    }
+  }
+
+  // inicialização
+  document.addEventListener("DOMContentLoaded", async () => {
+    carregarFuncionarios();
+    carregarOpcoes(`${API_BASE}/acidentes`, "situacao-acidente", "codigo-acidente");
+    carregarOpcoes(`${API_BASE}/doenca`, "situacao-doenca", "codigo-doenca");
+     carregarOpcoes(`${API_BASE}/agente`, "agente-causador", "codigo-agente-causador");
+    carregarOpcoes(`${API_BASE}/corpo`, "parte-corpo", "codigo-parte-corpo");    
+    carregarEmpresas();
+
+ document.getElementById("btnSalvar").addEventListener("click", salvarRelatorioHandler);
+
+// busca o número inicial
+await fetchNextNumero();
+
+// também observar a mudança do campo "houve óbito" em tempo real
+const houveObitoSelect = document.getElementById("houve-obito");
+const dataObitoInput = document.getElementById("data-obito");
+
+houveObitoSelect.addEventListener("change", () => {
+  if (houveObitoSelect.value === "Não") {
+    dataObitoInput.value = "";
+    dataObitoInput.disabled = true;
+  } else {
+    dataObitoInput.disabled = false;
+  }
+});
+
+    // Recupera nome do localStorage
+const nomeLogado = localStorage.getItem("nomeLogado");
+
+if (nomeLogado) {
+  document.getElementById("nomeUsuario").textContent = nomeLogado;
+} else {
+  document.getElementById("nomeUsuario").textContent = "Nenhum usuário";
+}
+
+// 🔹 Regras Acidente x Doença
+const codigoAcidente = document.getElementById("codigo-acidente");
+const situacaoAcidente = document.getElementById("situacao-acidente");
+const codigoDoenca = document.getElementById("codigo-doenca");
+const situacaoDoenca = document.getElementById("situacao-doenca");
+
+situacaoAcidente.addEventListener("change", () => {
+  if (situacaoAcidente.value) {
+    codigoDoenca.value = "";
+    situacaoDoenca.value = "";
+    codigoDoenca.disabled = true;
+    situacaoDoenca.disabled = true;
+  } else {
+    codigoDoenca.disabled = false;
+    situacaoDoenca.disabled = false;
+  }
+});
+
+situacaoDoenca.addEventListener("change", () => {
+  if (situacaoDoenca.value) {
+    codigoAcidente.value = "";
+    situacaoAcidente.value = "";
+    codigoAcidente.disabled = true;
+    situacaoAcidente.disabled = true;
+  } else {
+    codigoAcidente.disabled = false;
+    situacaoAcidente.disabled = false;
+  }
+});
+});
+</script>
+
+
+</body>
+</html>
