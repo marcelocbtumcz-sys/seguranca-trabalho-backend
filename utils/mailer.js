@@ -1,46 +1,54 @@
+require("dotenv").config();
 const nodemailer = require("nodemailer");
 const { google } = require("googleapis");
 
-// 🔹 Lendo as variáveis de ambiente
-const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI;
-const REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
-const USER_EMAIL = process.env.GOOGLE_USER_EMAIL;
+const {
+  GMAIL_USER,
+  GMAIL_CLIENT_ID,
+  GMAIL_CLIENT_SECRET,
+  GMAIL_REFRESH_TOKEN,
+  GMAIL_REDIRECT_URI
+} = process.env;
 
-// 🔹 Configuração do OAuth2
-const oAuth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
-oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+const oAuth2Client = new google.auth.OAuth2(
+  GMAIL_CLIENT_ID,
+  GMAIL_CLIENT_SECRET,
+  GMAIL_REDIRECT_URI
+);
+oAuth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN });
 
-// 🔹 Função genérica para enviar e-mails
 async function enviarEmail({ to, subject, html }) {
   try {
+    console.log("🔹 Iniciando envio de e-mail...");
+    console.log("GMAIL_USER:", GMAIL_USER);
+    console.log("Destinatário:", to);
+
     const accessToken = await oAuth2Client.getAccessToken();
+    console.log("🔹 Access Token obtido com sucesso");
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
         type: "OAuth2",
-        user: USER_EMAIL,
-        clientId: CLIENT_ID,
-        clientSecret: CLIENT_SECRET,
-        refreshToken: REFRESH_TOKEN,
+        user: GMAIL_USER,
+        clientId: GMAIL_CLIENT_ID,
+        clientSecret: GMAIL_CLIENT_SECRET,
+        refreshToken: GMAIL_REFRESH_TOKEN,
         accessToken: accessToken.token
       }
     });
 
-    const info = await transporter.sendMail({
-      from: `"Suporte - Sistema SESMT" <${USER_EMAIL}>`,
+    const mailOptions = {
+      from: `"Suporte SESMT" <${GMAIL_USER}>`,
       to,
       subject,
       html
-    });
+    };
 
-    console.log("✅ E-mail enviado com sucesso:", info.messageId);
-    return info;
+    const info = await transporter.sendMail(mailOptions);
+    console.log("✅ E-mail enviado com sucesso:", info);
   } catch (err) {
     console.error("❌ Erro ao enviar e-mail:", err);
-    throw err;
   }
 }
 
