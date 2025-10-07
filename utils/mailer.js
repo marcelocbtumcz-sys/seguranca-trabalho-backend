@@ -1,33 +1,28 @@
 require("dotenv").config();
-const { Resend } = require("resend");
-
-// Inicializa o cliente Resend
-const resend = new Resend(process.env.RESEND_API_KEY);
+const nodemailer = require("nodemailer");
 
 async function enviarEmail({ to, subject, html }) {
   try {
-    console.log("📨 Enviando e-mail via Resend...");
-    console.log("Destinatário:", to);
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASS,
+      },
+    });
 
-    const { data, error } = await resend.emails.send({
-      from: "Sistema SESMT <onboarding@resend.dev>", // pode mudar depois
+    const mailOptions = {
+      from: `"Suporte SESMT" <${process.env.MAIL_USER}>`,
       to,
       subject,
       html,
-    });
+    };
 
-    if (error) {
-      console.error("❌ Erro ao enviar e-mail:", error);
-      return { success: false, error };
-    }
-
-    console.log("✅ E-mail enviado com sucesso:", data);
-    return { success: true, data };
+    const info = await transporter.sendMail(mailOptions);
+    console.log("✅ E-mail enviado com sucesso:", info.response);
   } catch (err) {
-    console.error("❌ Erro inesperado:", err);
-    return { success: false, error: err };
+    console.error("❌ Erro ao enviar e-mail:", err);
   }
 }
 
 module.exports = enviarEmail;
-
