@@ -86,7 +86,8 @@ try {
   const posY = 40;
 
   // nomeEmitente pode vir de variáveis, config, ou fixo
-  const nomeEmitente = "Sistema SESMT"; // <-- ajuste aqui conforme desejar
+  const { emitente } = req.body;
+  const nomeEmitente = emitente || "Emitente não informado";
 
   doc.font("Helvetica").fontSize(10);
   doc.text(`Emitente: ${nomeEmitente}`, posX, posY, { width: 200, align: "left" });
