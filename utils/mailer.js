@@ -14,7 +14,7 @@ async function enviarEmail({ to, subject, html }) {
         Messages: [
           {
             From: {
-              Email: "marcelo.cbtu.mcz@gmail.com",
+              Email: "mantonio@cbtu.gov.br",
               Name: "Sistema SESMT",
             },
             To: [
