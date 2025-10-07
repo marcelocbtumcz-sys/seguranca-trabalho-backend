@@ -8,6 +8,7 @@ const session = require("express-session");
 const { dispararEmailsEpiVencido } = require("./cron/verificarEpiVencido");
 
 // 🔹 Importações de rotas e middlewares
+const protegerHtml = require("./middlewares/protegerHtml");
 const protegerRotas = require("./middlewares/authMiddleware");
 const authRoutes = require("./routes/authRoutes");
 const funcionarioRoutes = require("./routes/funcionarioRoutes");
@@ -32,6 +33,7 @@ const relatorioEpiRoutes = require("./routes/relatorioEpiRoutes");
 const relatorioEpiFuncionarioRoutes = require("./routes/relatorioEpiFuncionarioRoutes");
 
 const app = express();
+const isProduction = process.env.NODE_ENV === "production";
 
 // ============================
 // 🔹 Configuração de CORS segura
@@ -56,6 +58,8 @@ app.use(express.json());
 
 // ============================
 // 🔹 Configuração de Sessão (Render)
+
+app.set("trust proxy", isProduction ? 1 : 0);
 // ============================
 app.set("trust proxy", 1);
 
@@ -64,12 +68,14 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   proxy: true,
+
   cookie: {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    maxAge: 1000 * 60 * 60 * 2 // 2 horas
-  }
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production", // só exige HTTPS no Render
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  maxAge: 1000 * 60 * 60 * 2 // 2 horas
+}
+
 }));
 
 // ============================
@@ -101,8 +107,9 @@ app.use("/", authRoutes);
 // Caminho correto do frontend dentro do backend
 const frontendPath = path.join(__dirname, "frontend");
 
-// Servir todos os arquivos estáticos
-app.use(express.static(frontendPath));
+// Servir arquivos estáticos protegendo HTMLs
+app.use(protegerHtml, express.static(frontendPath));
+
 
 // Página inicial (login)
 app.get("/", (req, res) => {
