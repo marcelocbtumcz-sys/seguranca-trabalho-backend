@@ -1,23 +1,40 @@
 // utils/mailer.js
-const nodemailer = require("nodemailer");
+const Mailjet = require('node-mailjet');
 
-// Transporter configurado (Gmail, Outlook, etc.)
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: "marcelo.cbtu.mcz@gmail.com", // seu e-mail
-    pass: "jrqz qolz hdwp ynaj"         // senha de app do Gmail
-  }
-});
+const mailjet = Mailjet.apiConnect(
+  process.env.MJ_APIKEY_PUBLIC,
+  process.env.MJ_APIKEY_PRIVATE
+);
 
-// Função genérica para enviar e-mails
 async function enviarEmail({ to, subject, html }) {
-  return transporter.sendMail({
-    from: '"Suporte - Sistema de Controle SESMT" <marcelo.cbtu.mcz@gmail.com>',
-    to,
-    subject,
-    html
-  });
+  try {
+    const request = mailjet
+      .post('send', { version: 'v3.1' })
+      .request({
+        Messages: [
+          {
+            From: {
+              Email: "marcelo.cbtu.mcz@gmail.com",
+              Name: "Sistema SESMT",
+            },
+            To: [
+              {
+                Email: to,
+              },
+            ],
+            Subject: subject,
+            HTMLPart: html,
+          },
+        ],
+      });
+
+    const result = await request;
+    console.log('✅ E-mail enviado:', result.body);
+    return result.body;
+  } catch (err) {
+    console.error('❌ Erro ao enviar e-mail:', err.message);
+    throw new Error(err.message);
+  }
 }
 
 module.exports = enviarEmail;
