@@ -210,6 +210,16 @@
   </div> <!-- container -->
 
 <script>
+function atualizarContador(idTextarea, idContador, max) {
+  const campo = document.getElementById(idTextarea);
+  const contador = document.getElementById(idContador);
+
+  campo.addEventListener("input", () => {
+    const usado = campo.value.length;
+    contador.textContent = `${usado} / ${max} caracteres`;
+  });
+}
+    
 // Aplicar nos campos
 atualizarContador("epi", "epi_count", 70);
 </script>
