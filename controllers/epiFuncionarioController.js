@@ -6,10 +6,12 @@ exports.listar = async (req, res) => {
     const { matricula } = req.query;
     let sql = "SELECT * FROM epi_funcionario";
     let params = [];
+
     if (matricula) {
       sql += " WHERE matricula = ?";
       params.push(matricula);
     }
+
     const [rows] = await db.query(sql, params);
     return res.json(rows);
   } catch (err) {
@@ -22,8 +24,12 @@ exports.listar = async (req, res) => {
 exports.buscarPorId = async (req, res) => {
   try {
     const { id } = req.params;
-    const [rows] = await db.query("SELECT * FROM epi_funcionario WHERE idepi_funcionario = ?", [id]);
-    if (!rows || rows.length === 0) return res.status(404).json({ erro: "Entrega não encontrada" });
+    const [rows] = await db.query(
+      "SELECT * FROM epi_funcionario WHERE idepi_funcionario = ?",
+      [id]
+    );
+    if (!rows || rows.length === 0)
+      return res.status(404).json({ erro: "Entrega não encontrada" });
     return res.json(rows[0]);
   } catch (err) {
     console.error("Erro ao buscar entrega:", err);
@@ -34,22 +40,38 @@ exports.buscarPorId = async (req, res) => {
 // ------------------ CADASTRAR ENTREGA ------------------
 exports.cadastrar = async (req, res) => {
   try {
-    let { matricula, nome, setor, funcao, epi, ca, entrega, validade, quantidade } = req.body;
+    let {
+      matricula,
+      nome,
+      setor,
+      funcao,
+      epi,
+      ca,
+      entrega,
+      validade,
+      quantidade,
+      vida,
+    } = req.body;
+
     quantidade = parseInt(quantidade) || 1;
 
-    // verifica estoque
+    // Verifica estoque
     const [rowsEpi] = await db.query("SELECT estoque FROM epi WHERE epi = ?", [epi]);
     if (rowsEpi.length === 0) return res.status(400).send("EPI não encontrado");
-    if (rowsEpi[0].estoque < quantidade) return res.status(400).send("Estoque insuficiente");
+    if (rowsEpi[0].estoque < quantidade)
+      return res.status(400).send("Estoque insuficiente");
 
-    // insere
+    // Insere
     const [result] = await db.query(
-      "INSERT INTO epi_funcionario (matricula, nome, setor, funcao, epi, ca, entrega, validade, quantidade) VALUES (?,?,?,?,?,?,?,?,?)",
-      [matricula, nome, setor, funcao, epi, ca, entrega, validade, quantidade]
+      "INSERT INTO epi_funcionario (matricula, nome, setor, funcao, epi, ca, entrega, validade, quantidade, vida) VALUES (?,?,?,?,?,?,?,?,?,?)",
+      [matricula, nome, setor, funcao, epi, ca, entrega, validade, quantidade, vida]
     );
 
-    // baixa no estoque
-    await db.query("UPDATE epi SET estoque = estoque - ? WHERE epi = ?", [quantidade, epi]);
+    // Baixa no estoque
+    await db.query("UPDATE epi SET estoque = estoque - ? WHERE epi = ?", [
+      quantidade,
+      epi,
+    ]);
 
     res.json({ id: result.insertId });
   } catch (err) {
@@ -63,19 +85,33 @@ exports.atualizar = async (req, res) => {
   const conn = await db.getConnection();
   try {
     const { id } = req.params;
-    const { matricula, nome, setor, funcao, epi, ca, entrega, validade, quantidade } = req.body;
+    const {
+      matricula,
+      nome,
+      setor,
+      funcao,
+      epi,
+      ca,
+      entrega,
+      validade,
+      quantidade,
+      vida,
+    } = req.body;
 
     await conn.beginTransaction();
 
-    // busca entrega antiga
-    const [oldRows] = await conn.query("SELECT * FROM epi_funcionario WHERE idepi_funcionario = ?", [id]);
+    // Busca entrega antiga
+    const [oldRows] = await conn.query(
+      "SELECT * FROM epi_funcionario WHERE idepi_funcionario = ?",
+      [id]
+    );
     if (!oldRows.length) {
       await conn.rollback();
       return res.status(404).send("Entrega não encontrada");
     }
     const oldEntrega = oldRows[0];
 
-    // ajusta estoque pela diferença
+    // Ajusta estoque pela diferença
     const qtdNova = parseInt(quantidade) || 1;
     const diff = qtdNova - (oldEntrega.quantidade || 0);
     if (diff > 0) {
@@ -91,26 +127,46 @@ exports.atualizar = async (req, res) => {
 
     // Se trocou o EPI
     if (oldEntrega.epi !== epi) {
-      // devolve estoque antigo
-      await conn.query("UPDATE epi SET estoque = estoque + ? WHERE epi = ?", [oldEntrega.quantidade || 1, oldEntrega.epi]);
+      // Devolve estoque antigo
+      await conn.query("UPDATE epi SET estoque = estoque + ? WHERE epi = ?", [
+        oldEntrega.quantidade || 1,
+        oldEntrega.epi,
+      ]);
 
-      // baixa estoque novo
-      await conn.query("UPDATE epi SET estoque = estoque - ? WHERE epi = ?", [qtdNova, epi]);
+      // Baixa estoque novo
+      await conn.query("UPDATE epi SET estoque = estoque - ? WHERE epi = ?", [
+        qtdNova,
+        epi,
+      ]);
     }
 
-    // normaliza datas
-    const entregaVal = entrega && String(entrega).trim() !== "" ? entrega : null;
-    const validadeVal = validade && String(validade).trim() !== "" ? validade : null;
+    // Normaliza datas e textos
+    const entregaVal =
+      entrega && String(entrega).trim() !== "" ? entrega : null;
+    const validadeVal =
+      validade && String(validade).trim() !== "" ? validade : null;
+    const vidaVal = vida && String(vida).trim() !== "" ? vida : null;
 
-    // atualiza
+    // Atualiza
     await conn.query(
-      "UPDATE epi_funcionario SET matricula=?, nome=?, setor=?, funcao=?, epi=?, ca=?, entrega=?, validade=?, quantidade=? WHERE idepi_funcionario=?",
-      [matricula, nome, setor, funcao, epi, ca, entregaVal, validadeVal, qtdNova, id]
+      "UPDATE epi_funcionario SET matricula=?, nome=?, setor=?, funcao=?, epi=?, ca=?, entrega=?, validade=?, vida=?, quantidade=? WHERE idepi_funcionario=?",
+      [
+        matricula,
+        nome,
+        setor,
+        funcao,
+        epi,
+        ca,
+        entregaVal,
+        validadeVal,
+        vidaVal,
+        qtdNova,
+        id,
+      ]
     );
 
     await conn.commit();
     return res.json({ sucesso: true });
-
   } catch (err) {
     await conn.rollback();
     console.error("Erro ao atualizar entrega:", err);
@@ -127,7 +183,10 @@ exports.deletar = async (req, res) => {
     const { id } = req.params;
     await conn.beginTransaction();
 
-    const [rows] = await conn.query("SELECT * FROM epi_funcionario WHERE idepi_funcionario = ?", [id]);
+    const [rows] = await conn.query(
+      "SELECT * FROM epi_funcionario WHERE idepi_funcionario = ?",
+      [id]
+    );
     if (!rows.length) {
       await conn.rollback();
       return res.status(404).json({ erro: "Entrega não encontrada" });
@@ -135,10 +194,15 @@ exports.deletar = async (req, res) => {
 
     const entrega = rows[0];
     if (entrega.quantidade > 0) {
-      await conn.query("UPDATE epi SET estoque = estoque + ? WHERE epi = ?", [entrega.quantidade, entrega.epi]);
+      await conn.query("UPDATE epi SET estoque = estoque + ? WHERE epi = ?", [
+        entrega.quantidade,
+        entrega.epi,
+      ]);
     }
 
-    await conn.query("DELETE FROM epi_funcionario WHERE idepi_funcionario = ?", [id]);
+    await conn.query("DELETE FROM epi_funcionario WHERE idepi_funcionario = ?", [
+      id,
+    ]);
 
     await conn.commit();
     return res.json({ sucesso: true });
@@ -155,10 +219,13 @@ exports.deletar = async (req, res) => {
 exports.marcarDevolucao = async (req, res) => {
   try {
     const { id } = req.params;
-    await db.query("UPDATE epi_funcionario SET devolucao = 1 WHERE idepi_funcionario = ?", [id]);
+    await db.query(
+      "UPDATE epi_funcionario SET devolucao = 1 WHERE idepi_funcionario = ?",
+      [id]
+    );
     res.json({ mensagem: "EPI marcado como devolvido/substituído" });
   } catch (err) {
     console.error("Erro ao marcar devolução:", err);
     res.status(500).send("Erro ao marcar devolução");
   }
-};
+};   
