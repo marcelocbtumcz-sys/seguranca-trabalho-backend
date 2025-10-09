@@ -120,6 +120,10 @@
       <div class="col-6 text-start">
         <button id="btnNovaEntrega" class="btn btn-success">➕ Nova Entrega</button>
       </div>
+      <div class="col-md-6">
+  <label for="vida" class="form-label">Vida útil</label>
+  <input type="date" class="form-control" id="vida" name="vida" />
+</div>
       <div class="col-6 text-end">
         <button class="btn btn-secondary" onclick="window.location.href='principal.html'">⬅ Voltar</button>
       </div>
@@ -130,17 +134,19 @@
   <div class="container-fluid px-0">
     <table class="table table-bordered table-striped full-width-table">
       <thead class="table-dark text-center">
-        <tr>
-          <th>EPI</th>
-          <th>CA</th>
-          <th>Validade</th>
-          <th>Vencido</th>
-          <th>Entrega</th>
-          <th>Quantidade</th>
-          <th>Substituído</th>
-          <th class="text-center">Ações</th>
-        </tr>
-      </thead>
+  <tr>
+    <th>EPI</th>
+    <th>CA</th>
+    <th>Validade</th>
+    <th>Vencido (Validade)</th>
+    <th>Entrega</th>
+    <th>Vida</th> <!-- nova -->
+    <th>Vencido (Vida)</th> <!-- nova -->
+    <th>Quantidade</th>
+    <th>Substituído</th>
+    <th class="text-center">Ações</th>
+  </tr>
+</thead>
       <tbody id="tabelaEpiFuncionario">
         <tr><td colspan="8" class="text-center text-muted">Selecione uma matrícula para ver os EPIs</td></tr>
       </tbody>
@@ -316,6 +322,7 @@
       document.getElementById("quantidade").value = 1;
       document.getElementById("ca").value = "";
       document.getElementById("validade").value = "";
+      document.getElementById("vida").value = item.vida ? item.vida.split("T")[0] : "";
       const modal = new bootstrap.Modal(document.getElementById("modalEntregaEpi"));
       modal.show();
     });
@@ -338,39 +345,47 @@
 
         data.forEach(item => {
           const vencidoBool = isVencido(item.validade);
-          const validadeDisplay = item.validade ? formatDateDisplayFromAny(item.validade) : "";
-          const entregaDisplay = item.entrega ? formatDateDisplayFromAny(item.entrega) : "";
-          const qtd = (typeof item.quantidade !== "undefined" && item.quantidade !== null) ? item.quantidade : 1;
+          const validadeDisplay = item.validade ? new Date(item.validade).toLocaleDateString("pt-BR") : "";
+const entregaDisplay = item.entrega ? new Date(item.entrega).toLocaleDateString("pt-BR") : "";
+const vidaDisplay = item.vida ? new Date(item.vida).toLocaleDateString("pt-BR") : "";
 
-          const tr = document.createElement("tr");
-          // se já marcado como devolução/substituição (valor 1), aplica classe
-          const devolvido = Number(item.devolucao || item.substituido || 0) === 1;
+// vencido (validade)
+const vencidoBool = item.vencido == 1 || (item.validade && new Date(item.validade) < new Date());
 
-          if (devolvido) tr.classList.add("muted-row");
-          
+// vencido_vida (nova verificação)
+const vencidoVidaBool = item.vencido_vida == 1 || (item.vida && new Date(item.vida) < new Date());
 
-          // montar a linha (usamos innerHTML para simplicidade)
-          tr.innerHTML = `
-            <td>${escapeHtml(item.epi || "")}</td>
-            <td>${escapeHtml(item.ca || "")}</td>
-            <td>${escapeHtml(validadeDisplay)}</td>
-            <td class="text-center">
-              <span class="badge ${vencidoBool ? "bg-danger text-white" : "bg-success text-white"}">${vencidoBool ? "SIM" : "NÃO"}</span>
-            </td>
-            <td>${escapeHtml(entregaDisplay)}</td>
-            <td class="text-center">${escapeHtml(String(qtd))}</td>
-            <td class="text-center">
-              <input class="sub-checkbox" type="checkbox" data-id="${item.idepi_funcionario}" ${devolvido ? "checked" : ""} ${devolvido ? "disabled" : ""}>
-            </td>
-            <td class="text-center">
-              <div class="btn-group gap-2" role="group">
-                <button class="btn btn-warning btn-sm btn-edit" data-id="${item.idepi_funcionario}" ${devolvido ? "disabled" : ""}>Editar</button>
-               <button class="btn btn-danger btn-sm btn-del" data-id="${item.idepi_funcionario}">Excluir</button>
-              </div>
-            </td>
-          `;
+tr.innerHTML = `
+  <td>${escapeHtml(item.epi || "")}</td>
+  <td>${escapeHtml(item.ca || "")}</td>
+  <td>${escapeHtml(validadeDisplay)}</td>
+  <td class="text-center">
+    <span class="badge ${vencidoBool ? "bg-danger text-white" : "bg-success text-white"}">
+      ${vencidoBool ? "SIM" : "NÃO"}
+    </span>
+  </td>
+  <td>${escapeHtml(entregaDisplay)}</td>
 
-          tbody.appendChild(tr);
+  <!-- novas colunas -->
+  <td>${escapeHtml(vidaDisplay)}</td>
+  <td class="text-center">
+    <span class="badge ${vencidoVidaBool ? "bg-danger text-white" : "bg-success text-white"}">
+      ${vencidoVidaBool ? "SIM" : "NÃO"}
+    </span>
+  </td>
+
+  <td class="text-center">${escapeHtml(String(item.quantidade || ""))}</td>
+  <td class="text-center">
+    <input class="sub-checkbox" type="checkbox" data-id="${item.idepi_funcionario}" ${item.substituido ? "checked" : ""} ${item.substituido ? "disabled" : ""}>
+  </td>
+  <td class="text-center">
+    <div class="btn-group gap-2" role="group">
+      <button class="btn btn-warning btn-sm btn-edit" data-id="${item.idepi_funcionario}" ${item.substituido ? "disabled" : ""}>Editar</button>
+      <button class="btn btn-danger btn-sm btn-del" data-id="${item.idepi_funcionario}">Excluir</button>
+    </div>
+  </td>
+`;
+tbody.appendChild(tr);
         });
 
         // delegação de eventos - editar / excluir / checkbox substituição
@@ -469,61 +484,78 @@ tbody.addEventListener("change", async (ev) => {
     }
 
     // salvar nova entrega (POST) ou editar (PUT). Cliente checa estoque antes de enviar.
-    async function salvarEntrega() {
-      try {
-        const matricula = document.getElementById("matricula").value;
-        if (!matricula) { alert("Selecione uma matrícula."); return; }
+async function salvarEntrega() {
+  try {
+    const matricula = document.getElementById("matricula").value;
+    if (!matricula) {
+      alert("Selecione uma matrícula.");
+      return;
+    }
 
-        const nome = document.getElementById("nome").value;
-        const setor = document.getElementById("setor").value;
-        const funcao = document.getElementById("cargo").value;
-        const idepi = document.getElementById("epi").value; // idepi
-        const epiName = document.getElementById("epi").selectedOptions[0]?.dataset.epiName || "";
-        const ca = document.getElementById("ca").value;
-        const entrega = document.getElementById("entrega").value;
-        const validade = (document.getElementById("validade").value ? toIsoDateFromDisplay(document.getElementById("validade").value) : null);
-        const quantidade = parseInt(document.getElementById("quantidade").value || "1", 10);
+    const nome = document.getElementById("nome").value;
+    const setor = document.getElementById("setor").value;
+    const funcao = document.getElementById("cargo").value;
+    const idepi = document.getElementById("epi").value;
+    const epiName = document.getElementById("epi").selectedOptions[0]?.dataset.epiName || "";
+    const ca = document.getElementById("ca").value;
+    const entrega = document.getElementById("entrega").value;
+    const validade = (document.getElementById("validade").value ? toIsoDateFromDisplay(document.getElementById("validade").value) : null);
+    const vida = (document.getElementById("vida").value ? toIsoDateFromDisplay(document.getElementById("vida").value) : null);
+    const quantidade = parseInt(document.getElementById("quantidade").value || "1", 10);
 
-        if (!idepi || !entrega || !quantidade || quantidade < 1) {
-          alert("Preencha EPI, data de entrega e quantidade (>=1).");
-          return;
-        }
+    if (!idepi || !entrega || !quantidade || quantidade < 1) {
+      alert("Preencha EPI, data de entrega e quantidade (>=1).");
+      return;
+    }
 
-        // checa estoque localmente (opcional — backend re-verifica em transação)
-        const opt = document.getElementById("epi").selectedOptions[0];
-        const estoqueDisponivel = opt?.dataset.estoque ? parseInt(opt.dataset.estoque,10) : null;
-        if (estoqueDisponivel !== null && !isNaN(estoqueDisponivel)) {
-          // se estiver editando, o backend deve considerar diferença; aqui apenas pré-checagem para novas entregas
-          if (!editandoEntregaId && estoqueDisponivel < quantidade) {
-            alert(`Estoque insuficiente (disponível: ${estoqueDisponivel}). ajuste a quantidade ou reponha estoque.`);
-            return;
-          }
-        }
+    // checa estoque localmente (opcional — backend re-verifica)
+    const opt = document.getElementById("epi").selectedOptions[0];
+    const estoqueDisponivel = opt?.dataset.estoque ? parseInt(opt.dataset.estoque,10) : null;
+    if (estoqueDisponivel !== null && !isNaN(estoqueDisponivel)) {
+      if (!editandoEntregaId && estoqueDisponivel < quantidade) {
+        alert(`Estoque insuficiente (disponível: ${estoqueDisponivel}).`);
+        return;
+      }
+    }
 
-        const payload = {
-          matricula, nome, setor, funcao,
-          idepi, epi: epiName, ca,
-          entrega, validade, quantidade
-        };
+    // monta payload para o backend
+    const payload = {
+      matricula, nome, setor, funcao,
+      idepi, epi: epiName, ca,
+      entrega, validade, vida, quantidade
+    };
 
-        let url = `${API_BASE}/epi_funcionario`;
-        let method = "POST";
-        if (editandoEntregaId) {
-          url += `/${encodeURIComponent(editandoEntregaId)}`;
-          method = "PUT";
-        }
+    let url = `${API_BASE}/epi_funcionario`;
+    let method = "POST";
+    if (editandoEntregaId) {
+      url += `/${encodeURIComponent(editandoEntregaId)}`;
+      method = "PUT";
+    }
 
-        const res = await fetch(url, {
-          method,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
 
-        if (!res.ok) {
-          const txt = await res.text().catch(()=>null);
-          throw new Error(txt || "Erro ao salvar entrega");
-        }
+    if (!res.ok) {
+      const txt = await res.text().catch(()=>null);
+      throw new Error(txt || "Erro ao salvar entrega");
+    }
 
+    alert("Entrega salva com sucesso!");
+    bootstrap.Modal.getInstance(document.getElementById("modalEntregaEpi")).hide();
+    document.getElementById("formEntregaEpi").reset();
+    editandoEntregaId = null;
+
+    // recarrega entregas e o select de EPIs (estoque atualizado)
+    carregarEpisSelect();
+    carregarEntregasFuncionario(matricula);
+  } catch (err) {
+    console.error(err);
+    alert(err.message || "Erro ao salvar entrega");
+  }
+}
         alert("Entrega salva com sucesso!");
         bootstrap.Modal.getInstance(document.getElementById("modalEntregaEpi")).hide();
         document.getElementById("formEntregaEpi").reset();
