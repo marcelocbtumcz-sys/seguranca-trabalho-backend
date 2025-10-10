@@ -33,15 +33,17 @@ const relatorioEpiRoutes = require("./routes/relatorioEpiRoutes");
 const relatorioEpiFuncionarioRoutes = require("./routes/relatorioEpiFuncionarioRoutes");
 
 const app = express();
-const isProduction = process.env.NODE_ENV === "production";
-
+const isProduction = false
 // ============================
 // 🔹 Configuração de CORS segura
 // ============================
 const allowedOrigins = [
-  "http://localhost:5500",              // uso local
-  "http://10.10.40.9:3000"  // domínio do backend + frontend no Render
+  "http://localhost:5500",              // VS Code Live Server
+  "http://127.0.0.1:5500",              // outro possível endereço local
+  "http://10.10.40.9:3000",           // se acessar via IP local na rede
+  "https://sistema-sesmt.onrender.com"  // domínio do backend/front hospedado no Render
 ];
+
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -104,17 +106,12 @@ app.use("/", authRoutes);
 // 🔹 Servir frontend (Render)
 // ============================
 
-// Caminho correto do frontend dentro do backend
 const frontendPath = path.join(__dirname, "frontend");
 
-// Servir arquivos estáticos protegendo HTMLs
-app.use(protegerHtml, express.static(frontendPath));
+// Servir arquivos estáticos SEM proteção (temporariamente)
+app.use(express.static(frontendPath));
 
 
-// Página inicial (login)
-app.get("/", (req, res) => {
-  res.sendFile(path.join(frontendPath, "login.html"));
-});
 
 // ============================
 // 🔹 Middleware de proteção global
@@ -198,5 +195,3 @@ app.listen(PORT, "0.0.0.0", () => {
 // ============================
 require("./cron/verificarEpiVencido");
 require("./cron/verificarEpiVidaUtil");
-
-
