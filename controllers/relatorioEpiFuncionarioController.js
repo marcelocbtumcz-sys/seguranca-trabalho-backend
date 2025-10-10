@@ -23,7 +23,7 @@ exports.relatorioEpiFuncionario = async (req, res) => {
     }
 
     const [rows] = await db.query(
-      `SELECT nome, setor, funcao, epi, ca, entrega, validade, matricula, quantidade
+      `SELECT nome, setor, funcao, epi, ca, entrega, validade, matricula, quantidade, vida
        FROM epi_funcionario
        WHERE nome = ? AND (devolucao IS NULL OR devolucao = '') 
        ORDER BY entrega DESC`,
@@ -100,6 +100,10 @@ if (rows.length === 0) {
 
       doc.font("Helvetica-Bold").text("   Data de Entrega: ", { continued: true });
       doc.font("Helvetica").text(formatDate(r.entrega) || "Não informado");
+      doc.moveDown(0.6);
+
+      doc.font("Helvetica-Bold").text("Vida Útil: ", { continued: true });
+      doc.font("Helvetica").text(formatDate(r.vida) || "Não informado");
       doc.moveDown(1.2);
 
       // Linha separadora entre EPIs
