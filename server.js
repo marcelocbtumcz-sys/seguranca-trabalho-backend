@@ -5,10 +5,10 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const session = require("express-session");
-const axios = require("axios");
 const { dispararEmailsEpiVencido } = require("./cron/verificarEpiVencido");
 
 // 🔹 Importações de rotas e middlewares
+const protegerHtml = require("./middlewares/protegerHtml");
 const protegerRotas = require("./middlewares/authMiddleware");
 const authRoutes = require("./routes/authRoutes");
 const funcionarioRoutes = require("./routes/funcionarioRoutes");
@@ -39,9 +39,12 @@ const isProduction = process.env.NODE_ENV === "production";
 // 🔹 Configuração de CORS segura
 // ============================
 const allowedOrigins = [
-  "http://localhost:5500",
-  "https://sistema-sesmt.onrender.com"
+  "http://localhost:5500",              // VS Code Live Server
+  "http://127.0.0.1:5500",              // outro possível endereço local
+  "http://10.10.40.9:3000",           // se acessar via IP local na rede
+  "https://sistema-sesmt.onrender.com"  // domínio do backend/front hospedado no Render
 ];
+
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -57,22 +60,38 @@ app.use(cors({
 app.use(express.json());
 
 // ============================
-// 🔹 Configuração de Sessão
-// ============================
+// 🔹 Configuração de Sessão (Render)
+
 app.set("trust proxy", isProduction ? 1 : 0);
+// ============================
+app.set("trust proxy", 1);
 
 app.use(session({
   secret: "chave_super_secreta",
   resave: false,
   saveUninitialized: false,
   proxy: true,
+
   cookie: {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "none" : "lax",
-    maxAge: 1000 * 60 * 60 * 2
-  }
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production", // só exige HTTPS no Render
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  maxAge: 1000 * 60 * 60 * 2 // 2 horas
+}
+
 }));
+
+// ============================
+// 🔹 Rota de teste de sessão/cookie
+// ============================
+app.get("/test-cookie", (req, res) => {
+  if (!req.session.visitas) {
+    req.session.visitas = 1;
+  } else {
+    req.session.visitas++;
+  }
+  res.json({ visitas: req.session.visitas });
+});
 
 // ============================
 // 🔹 Rotas públicas
@@ -85,30 +104,15 @@ app.use("/", recuperarSenhaRoutes);
 app.use("/", authRoutes);
 
 // ============================
-// 🔹 Middleware para proteger páginas HTML (antes do static!)
+// 🔹 Servir frontend (Render)
 // ============================
-app.use((req, res, next) => {
-  if (req.path.endsWith(".html") && !["/login.html", "/recuperar.html"].includes(req.path)) {
-    if (!req.session || !req.session.usuario) {
-      return res.status(403).send(`
-        <html>
-          <body style="font-family: Arial; text-align: center; margin-top: 100px;">
-            <h2>🚫 Acesso Negado</h2>
-            <p>Faça login para acessar esta página.</p>
-            <a href="/login.html">Ir para o Login</a>
-          </body>
-        </html>
-      `);
-    }
-  }
-  next();
-});
 
-// ============================
-// 🔹 Servir frontend (Render ou local)
-// ============================
+// Caminho correto do frontend dentro do backend
 const frontendPath = path.join(__dirname, "frontend");
-app.use(express.static(frontendPath));
+
+// Servir arquivos estáticos protegendo HTMLs
+app.use(protegerHtml, express.static(frontendPath));
+
 
 // Página inicial (login)
 app.get("/", (req, res) => {
@@ -116,12 +120,12 @@ app.get("/", (req, res) => {
 });
 
 // ============================
-// 🔹 Middleware de proteção global da API
+// 🔹 Middleware de proteção global
 // ============================
 app.use(protegerRotas);
 
 // ============================
-// 🔹 Rotas privadas
+// 🔹 Rotas privadas da API
 // ============================
 app.use("/funcionarios", funcionarioRoutes);
 app.use("/acidentes", acidentesRoutes);
@@ -149,7 +153,7 @@ app.use("/", relatorioEpiFuncionarioRoutes);
 app.get("/verificar-epis-vencidos", async (req, res) => {
   try {
     await dispararEmailsEpiVencido();
-    res.send("✅ Verificação manual de EPIs vencidos concluída.");
+    res.send("✅ Verificação manual de EPIs vencidos concluída (verifique o e-mail).");
   } catch (err) {
     console.error("Erro ao executar verificação manual:", err);
     res.status(500).send("Erro ao executar verificação manual de EPIs vencidos.");
@@ -157,24 +161,35 @@ app.get("/verificar-epis-vencidos", async (req, res) => {
 });
 
 // ============================
-// 🔹 Mantém o Render acordado
+// 🔹 Mantém o Render acordado das 07h às 19h (horário de Brasília)
 // ============================
+const axios = require("axios");
+
 if (process.env.RENDER_EXTERNAL_URL) {
   const wakeUpURL = process.env.RENDER_EXTERNAL_URL + "/status";
-  console.log(`⏰ Ativando self-ping para: ${wakeUpURL}`);
+  console.log(`⏰ Ativando self-ping diário (07h às 19h) para: ${wakeUpURL}`);
 
   setInterval(async () => {
-    try {
-      await axios.get(wakeUpURL);
-      console.log("💤 Ping enviado para manter ativo");
-    } catch (err) {
-      console.log("⚠️ Falha no ping:", err.message);
+    const agora = new Date();
+    const horaBrasil = new Date(agora.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })).getHours();
+
+    // Apenas entre 7h e 19h
+    if (horaBrasil >= 7 && horaBrasil < 19) {
+      try {
+        await axios.get(wakeUpURL);
+        console.log("💤 Ping enviado para manter ativo");
+      } catch (err) {
+        console.log("⚠️ Falha no ping:", err.message);
+      }
+    } else {
+      console.log("🌙 Fora do horário comercial — sem ping");
     }
-  }, 5 * 60 * 1000);
+  }, 5 * 60 * 1000); // a cada 5 minutos
 }
 
+
 // ============================
-// 🔹 Inicialização
+// 🔹 Inicialização do servidor
 // ============================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
@@ -182,10 +197,11 @@ app.listen(PORT, "0.0.0.0", () => {
 });
 
 // ============================
-// 🔹 Cron
+// 🔹 Cron automático
 // ============================
-require("./cron/verificarEpiVencido");
+require("./cron/verificarEpiVencido"); 
 require("./cron/verificarEpiVidaUtil");
+
 
 
 
