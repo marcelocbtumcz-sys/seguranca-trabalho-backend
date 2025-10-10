@@ -45,7 +45,6 @@ const allowedOrigins = [
   "https://sistema-sesmt.onrender.com"  // domínio do backend/front hospedado no Render
 ];
 
-
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -161,34 +160,6 @@ app.get("/verificar-epis-vencidos", async (req, res) => {
 });
 
 // ============================
-// 🔹 Mantém o Render acordado das 07h às 19h (horário de Brasília)
-// ============================
-const axios = require("axios");
-
-if (process.env.RENDER_EXTERNAL_URL) {
-  const wakeUpURL = process.env.RENDER_EXTERNAL_URL + "/status";
-  console.log(`⏰ Ativando self-ping diário (07h às 19h) para: ${wakeUpURL}`);
-
-  setInterval(async () => {
-    const agora = new Date();
-    const horaBrasil = new Date(agora.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })).getHours();
-
-    // Apenas entre 7h e 19h
-    if (horaBrasil >= 7 && horaBrasil < 19) {
-      try {
-        await axios.get(wakeUpURL);
-        console.log("💤 Ping enviado para manter ativo");
-      } catch (err) {
-        console.log("⚠️ Falha no ping:", err.message);
-      }
-    } else {
-      console.log("🌙 Fora do horário comercial — sem ping");
-    }
-  }, 5 * 60 * 1000); // a cada 5 minutos
-}
-
-
-// ============================
 // 🔹 Inicialização do servidor
 // ============================
 const PORT = process.env.PORT || 3000;
@@ -201,7 +172,3 @@ app.listen(PORT, "0.0.0.0", () => {
 // ============================
 require("./cron/verificarEpiVencido"); 
 require("./cron/verificarEpiVidaUtil");
-
-
-
-
