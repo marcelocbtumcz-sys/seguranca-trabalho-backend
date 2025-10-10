@@ -29,7 +29,7 @@ async function enviarEmail({ to, subject, html }) {
       });
 
     const result = await request;
-    console.log('✅ E-mail enviado:', result.body);
+    console.log(`✅ E-mail enviado com sucesso para ${to}`);
     return result.body;
   } catch (err) {
     console.error('❌ Erro ao enviar e-mail:', err.message);
