@@ -1,0 +1,28 @@
+name: Ping Render App
+
+on:
+  schedule:
+    # ⏰ Executa a cada 5 minutos das 10h às 22h UTC (07h às 19h no horário de Brasília)
+    - cron: "*/5 10-22 * * *"
+  workflow_dispatch: # permite rodar manualmente se quiser
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ping Render App
+        env:
+          RENDER_URL: ${{ secrets.RENDER_URL }}
+        run: |
+          echo "⏰ Iniciando ping para o Render..."
+          echo "URL: $RENDER_URL"
+          
+          # Faz o ping e mostra o código de resposta
+          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" $RENDER_URL)
+
+          if [ "$STATUS_CODE" -eq 200 ]; then
+            echo "✅ Aplicação respondeu com sucesso (HTTP 200)"
+          else
+            echo "⚠️ Aplicação respondeu com código HTTP $STATUS_CODE"
+          fi
