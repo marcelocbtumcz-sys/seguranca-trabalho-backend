@@ -1,10 +1,9 @@
-// 📁 cron/verificarEpiVencido.js
-require("dotenv").config(); // ✅ carrega variáveis .env logo no início
+require("dotenv").config();
 const db = require("../db");
 const enviarEmail = require("../utils/mailer");
 const cron = require("node-cron");
 
-// 🔹 Busca EPIs vencidos ou com validade no mês atual
+// 🔹 Busca EPIs vencidos ou que vencem no mês atual
 async function buscarEpiVencidoOuProximo() {
   const hoje = new Date();
   const primeiroDia = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
@@ -55,7 +54,7 @@ async function dispararEmailsEpiVencido() {
       return;
     }
 
-    // Montagem da tabela HTML
+    // 🔹 Montagem da tabela HTML
     const linhas = epis.map(e => {
       const dataValidade = e.validade.split("T")[0];
       const validadeLocal = formatarDataLocal(dataValidade);
@@ -112,15 +111,26 @@ async function dispararEmailsEpiVencido() {
       </div>
     `;
 
-    // Envia e-mails um a um
-    for (const u of usuarios) {
-      const resposta = await enviarEmail({
-        to: u.email,
-        subject: `📅 Relatório Mensal - EPIs vencidos ou próximos do vencimento (${mesAno})`,
-        html
-      });
-      console.log(`📧 Email enviado para: ${u.nome} (${u.email}) → ${resposta}`);
+    // 🔹 Envio com intervalo de 5 segundos entre cada e-mail
+    for (const [index, u] of usuarios.entries()) {
+      if (index > 0) {
+        await new Promise(resolve => setTimeout(resolve, 5000)); // pausa 5s entre e-mails
+      }
+
+      try {
+        const resposta = await enviarEmail({
+          to: u.email,
+          subject: `📅 Relatório Mensal - EPIs vencidos ou próximos do vencimento (${mesAno})`,
+          html
+        });
+
+        console.log(`📧 E-mail enviado para: ${u.nome} (${u.email}) →`, resposta.Messages?.[0]?.Status || "OK");
+      } catch (err) {
+        console.error(`❌ Erro ao enviar e-mail para ${u.email}:`, err.message);
+      }
     }
+
+    console.log("✅ Envio de relatórios concluído com sucesso!");
 
   } catch (err) {
     console.error("❌ Erro ao verificar/disparar e-mails de EPIs vencidos:", err);
