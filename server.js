@@ -40,7 +40,7 @@ const isProduction = process.env.NODE_ENV === "production";
 // ============================
 const allowedOrigins = [
   "http://localhost:5500",              // uso local
-  "https://sistema-sesmt.onrender.com"  // domínio do backend + frontend no Render
+  "http://10.10.40.9:3000"  // domínio do backend + frontend no Render
 ];
 
 app.use(cors({
@@ -197,5 +197,6 @@ app.listen(PORT, "0.0.0.0", () => {
 // 🔹 Cron automático
 // ============================
 require("./cron/verificarEpiVencido");
+require("./cron/verificarEpiVidaUtil");
 
 
