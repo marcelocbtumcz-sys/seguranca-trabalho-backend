@@ -5,10 +5,10 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const session = require("express-session");
+const axios = require("axios");
 const { dispararEmailsEpiVencido } = require("./cron/verificarEpiVencido");
 
 // 🔹 Importações de rotas e middlewares
-const protegerHtml = require("./middlewares/protegerHtml");
 const protegerRotas = require("./middlewares/authMiddleware");
 const authRoutes = require("./routes/authRoutes");
 const funcionarioRoutes = require("./routes/funcionarioRoutes");
@@ -33,17 +33,15 @@ const relatorioEpiRoutes = require("./routes/relatorioEpiRoutes");
 const relatorioEpiFuncionarioRoutes = require("./routes/relatorioEpiFuncionarioRoutes");
 
 const app = express();
-const isProduction = false
+const isProduction = process.env.NODE_ENV === "production";
+
 // ============================
 // 🔹 Configuração de CORS segura
 // ============================
 const allowedOrigins = [
-  "http://localhost:5500",              // VS Code Live Server
-  "http://127.0.0.1:5500",              // outro possível endereço local
-  "http://10.10.40.9:3000",           // se acessar via IP local na rede
-  "https://sistema-sesmt.onrender.com"  // domínio do backend/front hospedado no Render
+  "http://localhost:5500",              // uso local
+  "https://sistema-sesmt.onrender.com"  // domínio do backend + frontend no Render
 ];
-
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -59,25 +57,21 @@ app.use(cors({
 app.use(express.json());
 
 // ============================
-// 🔹 Configuração de Sessão (Render)
-
-app.set("trust proxy", isProduction ? 1 : 0);
+// 🔹 Configuração de Sessão
 // ============================
-app.set("trust proxy", 1);
+app.set("trust proxy", isProduction ? 1 : 0);
 
 app.use(session({
   secret: "chave_super_secreta",
   resave: false,
   saveUninitialized: false,
   proxy: true,
-
   cookie: {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production", // só exige HTTPS no Render
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-  maxAge: 1000 * 60 * 60 * 2 // 2 horas
-}
-
+    httpOnly: true,
+    secure: isProduction, // só exige HTTPS no Render
+    sameSite: isProduction ? "none" : "lax",
+    maxAge: 1000 * 60 * 60 * 2 // 2 horas
+  }
 }));
 
 // ============================
@@ -105,18 +99,36 @@ app.use("/", authRoutes);
 // ============================
 // 🔹 Servir frontend (Render)
 // ============================
-
 const frontendPath = path.join(__dirname, "frontend");
-
-// Servir arquivos estáticos SEM proteção (temporariamente)
 app.use(express.static(frontendPath));
 
-
+// Página inicial (login)
+app.get("/", (req, res) => {
+  res.sendFile(path.join(frontendPath, "login.html"));
+});
 
 // ============================
 // 🔹 Middleware de proteção global
 // ============================
 app.use(protegerRotas);
+
+// ============================
+// 🔹 Middleware para proteger páginas HTML
+// ============================
+app.use((req, res, next) => {
+  if (req.path.endsWith(".html") && (!req.session || !req.session.usuario)) {
+    return res.status(403).send(`
+      <html>
+        <body style="font-family: Arial; text-align: center; margin-top: 100px;">
+          <h2>🚫 Acesso Negado</h2>
+          <p>Faça login para acessar esta página.</p>
+          <a href="/login.html">Ir para o Login</a>
+        </body>
+      </html>
+    `);
+  }
+  next();
+});
 
 // ============================
 // 🔹 Rotas privadas da API
@@ -155,32 +167,21 @@ app.get("/verificar-epis-vencidos", async (req, res) => {
 });
 
 // ============================
-// 🔹 Mantém o Render acordado das 07h às 19h (horário de Brasília)
+// 🔹 Mantém o Render acordado (self-ping)
 // ============================
-const axios = require("axios");
-
 if (process.env.RENDER_EXTERNAL_URL) {
   const wakeUpURL = process.env.RENDER_EXTERNAL_URL + "/status";
-  console.log(`⏰ Ativando self-ping diário (07h às 19h) para: ${wakeUpURL}`);
+  console.log(`⏰ Ativando self-ping para: ${wakeUpURL}`);
 
   setInterval(async () => {
-    const agora = new Date();
-    const horaBrasil = new Date(agora.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })).getHours();
-
-    // Apenas entre 7h e 19h
-    if (horaBrasil >= 7 && horaBrasil < 19) {
-      try {
-        await axios.get(wakeUpURL);
-        console.log("💤 Ping enviado para manter ativo");
-      } catch (err) {
-        console.log("⚠️ Falha no ping:", err.message);
-      }
-    } else {
-      console.log("🌙 Fora do horário comercial — sem ping");
+    try {
+      await axios.get(wakeUpURL);
+      console.log("💤 Ping enviado para manter ativo");
+    } catch (err) {
+      console.log("⚠️ Falha no ping:", err.message);
     }
-  }, 5 * 60 * 1000); // a cada 5 minutos
+  }, 5 * 60 * 1000);
 }
-
 
 // ============================
 // 🔹 Inicialização do servidor
@@ -195,3 +196,4 @@ app.listen(PORT, "0.0.0.0", () => {
 // ============================
 require("./cron/verificarEpiVencido");
 require("./cron/verificarEpiVidaUtil");
+
