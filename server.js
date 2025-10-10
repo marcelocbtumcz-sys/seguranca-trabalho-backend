@@ -39,8 +39,8 @@ const isProduction = process.env.NODE_ENV === "production";
 // 🔹 Configuração de CORS segura
 // ============================
 const allowedOrigins = [
-  "http://localhost:5500",              // uso local
-  "https://sistema-sesmt.onrender.com"  // domínio do backend + frontend no Render
+  "http://localhost:5500",
+  "https://sistema-sesmt.onrender.com"
 ];
 
 app.use(cors({
@@ -68,23 +68,11 @@ app.use(session({
   proxy: true,
   cookie: {
     httpOnly: true,
-    secure: isProduction, // só exige HTTPS no Render
+    secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
-    maxAge: 1000 * 60 * 60 * 2 // 2 horas
+    maxAge: 1000 * 60 * 60 * 2
   }
 }));
-
-// ============================
-// 🔹 Rota de teste de sessão/cookie
-// ============================
-app.get("/test-cookie", (req, res) => {
-  if (!req.session.visitas) {
-    req.session.visitas = 1;
-  } else {
-    req.session.visitas++;
-  }
-  res.json({ visitas: req.session.visitas });
-});
 
 // ============================
 // 🔹 Rotas públicas
@@ -97,7 +85,27 @@ app.use("/", recuperarSenhaRoutes);
 app.use("/", authRoutes);
 
 // ============================
-// 🔹 Servir frontend (Render)
+// 🔹 Middleware para proteger páginas HTML (antes do static!)
+// ============================
+app.use((req, res, next) => {
+  if (req.path.endsWith(".html") && !["/login.html", "/recuperar.html"].includes(req.path)) {
+    if (!req.session || !req.session.usuario) {
+      return res.status(403).send(`
+        <html>
+          <body style="font-family: Arial; text-align: center; margin-top: 100px;">
+            <h2>🚫 Acesso Negado</h2>
+            <p>Faça login para acessar esta página.</p>
+            <a href="/login.html">Ir para o Login</a>
+          </body>
+        </html>
+      `);
+    }
+  }
+  next();
+});
+
+// ============================
+// 🔹 Servir frontend (Render ou local)
 // ============================
 const frontendPath = path.join(__dirname, "frontend");
 app.use(express.static(frontendPath));
@@ -108,30 +116,12 @@ app.get("/", (req, res) => {
 });
 
 // ============================
-// 🔹 Middleware de proteção global
+// 🔹 Middleware de proteção global da API
 // ============================
 app.use(protegerRotas);
 
 // ============================
-// 🔹 Middleware para proteger páginas HTML
-// ============================
-app.use((req, res, next) => {
-  if (req.path.endsWith(".html") && (!req.session || !req.session.usuario)) {
-    return res.status(403).send(`
-      <html>
-        <body style="font-family: Arial; text-align: center; margin-top: 100px;">
-          <h2>🚫 Acesso Negado</h2>
-          <p>Faça login para acessar esta página.</p>
-          <a href="/login.html">Ir para o Login</a>
-        </body>
-      </html>
-    `);
-  }
-  next();
-});
-
-// ============================
-// 🔹 Rotas privadas da API
+// 🔹 Rotas privadas
 // ============================
 app.use("/funcionarios", funcionarioRoutes);
 app.use("/acidentes", acidentesRoutes);
@@ -159,7 +149,7 @@ app.use("/", relatorioEpiFuncionarioRoutes);
 app.get("/verificar-epis-vencidos", async (req, res) => {
   try {
     await dispararEmailsEpiVencido();
-    res.send("✅ Verificação manual de EPIs vencidos concluída (verifique o e-mail).");
+    res.send("✅ Verificação manual de EPIs vencidos concluída.");
   } catch (err) {
     console.error("Erro ao executar verificação manual:", err);
     res.status(500).send("Erro ao executar verificação manual de EPIs vencidos.");
@@ -167,7 +157,7 @@ app.get("/verificar-epis-vencidos", async (req, res) => {
 });
 
 // ============================
-// 🔹 Mantém o Render acordado (self-ping)
+// 🔹 Mantém o Render acordado
 // ============================
 if (process.env.RENDER_EXTERNAL_URL) {
   const wakeUpURL = process.env.RENDER_EXTERNAL_URL + "/status";
@@ -184,7 +174,7 @@ if (process.env.RENDER_EXTERNAL_URL) {
 }
 
 // ============================
-// 🔹 Inicialização do servidor
+// 🔹 Inicialização
 // ============================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
@@ -192,8 +182,10 @@ app.listen(PORT, "0.0.0.0", () => {
 });
 
 // ============================
-// 🔹 Cron automático
+// 🔹 Cron
 // ============================
 require("./cron/verificarEpiVencido");
 require("./cron/verificarEpiVidaUtil");
+
+
 
