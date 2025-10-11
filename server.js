@@ -42,7 +42,7 @@ const allowedOrigins = [
   "http://localhost:5500",              // VS Code Live Server
   "http://127.0.0.1:5500",              // outro possível endereço local
   "http://10.10.40.9:3000",           // se acessar via IP local na rede
-  "https://sistema-sesmt.onrender.com"  // domínio do backend/front hospedado no Render
+  "https://sisprest.onrender.com"  // domínio do backend/front hospedado no Render
 ];
 
 app.use(cors({
@@ -178,4 +178,5 @@ app.listen(PORT, "0.0.0.0", () => {
 // ============================
 require("./cron/verificarEpiVencido"); 
 require("./cron/verificarEpiVidaUtil");
+
 
