@@ -110,7 +110,13 @@ app.use("/", authRoutes);
 const frontendPath = path.join(__dirname, "frontend");
 
 // Servir arquivos estáticos protegendo HTMLs
-app.use(protegerHtml, express.static(frontendPath));
+
+// 1️⃣ Servir arquivos estáticos (imagens, css, js, etc.)
+app.use(express.static(frontendPath));
+
+// 2️⃣ Depois aplicar a proteção apenas para os HTMLs
+app.use(protegerHtml);
+
 
 
 // Página inicial (login)
@@ -172,3 +178,4 @@ app.listen(PORT, "0.0.0.0", () => {
 // ============================
 require("./cron/verificarEpiVencido"); 
 require("./cron/verificarEpiVidaUtil");
+
